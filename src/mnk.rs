@@ -1,4 +1,4 @@
-use std::{fmt, iter};
+use std::{fmt, iter, ops};
 
 /// One of two players.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -12,7 +12,7 @@ pub enum Player {
 impl fmt::Display for Player {
     /// Writes "X" for [`Player::X`] and "O" for [`Player::O`].
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+        match *self {
             Player::X => write!(f, "X"),
             Player::O => write!(f, "O"),
         }
@@ -32,9 +32,9 @@ pub enum Space {
 impl fmt::Display for Space {
     /// Writes a space for [`Space::Empty`] and the player for a [`Space::Stone`].
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
+        match *self {
             Space::Empty => write!(f, " "),
-            Space::Stone(player) => write!(f, "{}", player),
+            Space::Stone(player) => write!(f, "{player}"),
         }
     }
 }
@@ -83,6 +83,7 @@ pub struct MnkBoard<const R: usize, const C: usize, const K: usize> {
 
 impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// Returns a board filled with [`Space::Empty`].
+    #[must_use]
     pub fn new() -> Self {
         Self {
             row_array: [[Space::Empty; C]; R],
@@ -93,6 +94,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     ///
     /// It is possible, but ill-advised, for a board to have multiple winners. In such a case, the
     /// value returned by this is an arbitrary [`Player`] but not `None`.
+    #[must_use]
     pub fn winner(&self) -> Option<Player> {
         if C >= K {
             let winner = Self::winner_in_runs(self.rows());
@@ -158,7 +160,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Returns an [`Iterator`] over the rows of the board.
     fn rows(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        self.row_array.into_iter().map(|row| row.into_iter())
+        self.row_array.into_iter().map(IntoIterator::into_iter)
     }
 
     /// Returns an [`Iterator`] over the columns of the board.
@@ -181,13 +183,13 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     ///
     /// Only iterates over diagonals of length at least `K`.
     fn down_left_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        type RangeMap<T> = iter::Map<std::ops::Range<usize>, Box<T>>;
+        type RangeMap<T> = iter::Map<ops::Range<usize>, Box<T>>;
         let top_diags: RangeMap<dyn FnMut(usize) -> Box<dyn Iterator<Item = Space>>> = ((K - 1)..C)
             .map(Box::new(|last_col| {
                 Box::new(self.coords_to_spaces(iter::zip(0..R, (0..=last_col).rev())))
             }));
         let right_diags: RangeMap<dyn FnMut(usize) -> Box<dyn Iterator<Item = Space>>> =
-            // The +1 avoids  Range/RangeInclusive mismatch
+            // The +1 avoids  Range/RangeInclusive mismatch so we don't have to box the whole thing
             (1..(R - K + 1)).map(Box::new(|last_row| {
                 Box::new(self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
             }));
