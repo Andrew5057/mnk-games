@@ -72,6 +72,9 @@ impl From<Space> for Option<Player> {
 /// stones in a row. Another type can redefine this orientation if such an inversion is more
 /// convenient.
 ///
+/// `K` must be nonzero. There are no guarantees for methods on `MnkBoard<R, C, 0>`; panics are
+/// possible.
+///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MnkBoard<const R: usize, const C: usize, const K: usize> {
@@ -84,6 +87,65 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         Self {
             row_array: [[Space::Empty; C]; R],
         }
+    }
+
+    /// Returns the winner of the game, or [`None`] if neither player has won.
+    ///
+    /// It is possible, but ill-advised, for a board to have multiple winners. In such a case, the
+    /// value returned by this is an arbitrary [`Player`] but not `None`.
+    pub fn winner(&self) -> Option<Player> {
+        if C >= K {
+            let winner = Self::winner_in_runs(self.rows());
+            if winner.is_some() {
+                return winner;
+            }
+        }
+        if R >= K {
+            let winner = Self::winner_in_runs(self.columns());
+            if winner.is_some() {
+                return winner;
+            }
+        }
+        if R >= K && C >= K {
+            let winner = Self::winner_in_runs(self.down_right_diagonals());
+            if winner.is_some() {
+                return winner;
+            }
+            Self::winner_in_runs(self.down_left_diagonals())
+        } else {
+            None
+        }
+    }
+
+    /// Returns the first [`Player`] to be a winner in any of the passed runs.
+    fn winner_in_runs(runs: impl Iterator<Item = impl Iterator<Item = Space>>) -> Option<Player> {
+        let mut winners = runs.map(Self::winner_in_run);
+        winners.find(Option::is_some).flatten()
+    }
+
+    /// Returns the first [`Player`] to have `K` consecutive [`Space`]s in the [`Iterator`].
+    fn winner_in_run(run: impl Iterator<Item = Space>) -> Option<Player> {
+        let mut consecutive = 0;
+        let mut previous = Space::Empty;
+        for space in run {
+            match space {
+                Space::Empty => {
+                    consecutive = 0;
+                }
+                Space::Stone(player) => {
+                    if space == previous {
+                        consecutive += 1;
+                    } else {
+                        consecutive = 1;
+                    }
+                    if consecutive == K {
+                        return Some(player);
+                    }
+                }
+            }
+            previous = space;
+        }
+        None
     }
 
     /// Converts (row, column) pairs to their corresponding [`Space`] instances.
@@ -130,6 +192,251 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
                 Box::new(self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
             }));
         top_diags.chain(right_diags)
+    }
+}
+
+#[cfg(test)]
+mod test_winner_in_run {
+    use super::*;
+
+    #[test]
+    fn test_trivial() {
+        let empty: [Space; 0] = [];
+        assert!(MnkBoard::<0, 0, 1>::winner_in_run(empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(empty.into_iter()).is_none());
+
+        let one_empty = [Space::Empty];
+        assert!(MnkBoard::<0, 0, 1>::winner_in_run(one_empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(one_empty.into_iter()).is_none());
+
+        let one_x = [Space::Stone(Player::X)];
+        assert_eq!(
+            MnkBoard::<1, 1, 1>::winner_in_run(one_x.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_x.into_iter()).is_none());
+
+        let one_o = [Space::Stone(Player::O)];
+        assert_eq!(
+            MnkBoard::<1, 1, 1>::winner_in_run(one_o.into_iter()),
+            Some(Player::O)
+        );
+        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_o.into_iter()).is_none());
+    }
+
+    #[test]
+    fn test_single_player() {
+        let right_run = [
+            Space::Empty,
+            Space::Empty,
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 3>::winner_in_run(right_run.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<0, 0, 4>::winner_in_run(right_run.into_iter()).is_none());
+
+        let interrupted = [
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Empty,
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 2>::winner_in_run(interrupted.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted.into_iter()).is_none());
+
+        let bookend = [
+            Space::Empty,
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Empty,
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 3>::winner_in_run(bookend.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<0, 0, 4>::winner_in_run(bookend.into_iter()).is_none());
+    }
+
+    #[test]
+    fn test_two_player() {
+        let left_heavy = [
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Stone(Player::O),
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 2>::winner_in_run(left_heavy.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(left_heavy.into_iter()).is_none());
+
+        let right_heavy = [
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 2>::winner_in_run(right_heavy.into_iter()),
+            Some(Player::X)
+        );
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(right_heavy.into_iter()).is_none());
+
+        let interrupted = [
+            Space::Stone(Player::X),
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+        ];
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(interrupted.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted.into_iter()).is_none());
+    }
+}
+
+#[cfg(test)]
+mod test_winner {
+    use super::*;
+
+    #[test]
+    fn test_draws() {
+        let empty_0x0 = MnkBoard::<0, 0, 1>::new();
+        assert!(empty_0x0.winner().is_none());
+
+        let empty_3x3 = MnkBoard::<3, 3, 3>::new();
+        assert!(empty_3x3.winner().is_none());
+
+        let drawn_3x3 = MnkBoard::<3, 3, 3>::from([
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::O),
+                Space::Stone(Player::X),
+            ],
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::O),
+                Space::Stone(Player::O),
+            ],
+            [
+                Space::Stone(Player::O),
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+            ],
+        ]);
+        assert!(drawn_3x3.winner().is_none());
+    }
+
+    #[test]
+    fn test_row_wins() {
+        let first_row_win = MnkBoard::<3, 3, 3>::from([
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+            ],
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(first_row_win.winner(), Some(Player::X));
+        let second_row_win = MnkBoard::<3, 3, 3>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+            ],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(second_row_win.winner(), Some(Player::X));
+        let third_row_win = MnkBoard::<3, 3, 3>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Empty, Space::Empty, Space::Empty],
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+                Space::Stone(Player::X),
+            ],
+        ]);
+        assert_eq!(third_row_win.winner(), Some(Player::X));
+    }
+
+    #[test]
+    fn test_column_wins() {
+        let first_column_win = MnkBoard::<3, 3, 3>::from([
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(first_column_win.winner(), Some(Player::X));
+
+        let second_column_win = MnkBoard::<3, 3, 3>::from([
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+        ]);
+        assert_eq!(second_column_win.winner(), Some(Player::X));
+
+        let third_column_win = MnkBoard::<3, 3, 3>::from([
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+        ]);
+        assert_eq!(third_column_win.winner(), Some(Player::X));
+    }
+
+    #[test]
+    fn test_down_right_wins() {
+        let first_down_right_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(first_down_right_win.winner(), Some(Player::X));
+
+        let second_down_right_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(second_down_right_win.winner(), Some(Player::X));
+
+        let third_down_right_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+        ]);
+        assert_eq!(third_down_right_win.winner(), Some(Player::X));
+    }
+
+    #[test]
+    fn test_down_left_wins() {
+        let first_down_left_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(first_down_left_win.winner(), Some(Player::X));
+
+        let second_down_left_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Empty, Space::Empty, Space::Empty],
+        ]);
+        assert_eq!(second_down_left_win.winner(), Some(Player::X));
+
+        let third_down_left_win = MnkBoard::<3, 3, 2>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+        ]);
+        assert_eq!(third_down_left_win.winner(), Some(Player::X));
     }
 }
 
