@@ -13,8 +13,8 @@ impl fmt::Display for Player {
     /// Writes "X" for [`Player::X`] and "O" for [`Player::O`].
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Player::X => write!(f, "X"),
-            Player::O => write!(f, "O"),
+            Self::X => write!(f, "X"),
+            Self::O => write!(f, "O"),
         }
     }
 }
@@ -33,8 +33,8 @@ impl fmt::Display for Space {
     /// Writes a space for [`Space::Empty`] and the player for a [`Space::Stone`].
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Space::Empty => write!(f, " "),
-            Space::Stone(player) => write!(f, "{player}"),
+            Self::Empty => write!(f, " "),
+            Self::Stone(player) => write!(f, "{player}"),
         }
     }
 }
@@ -42,17 +42,14 @@ impl fmt::Display for Space {
 impl From<Option<Player>> for Space {
     /// Maps [`None`] and [`Some`] to [`Space::Empty`] and [`Space::Stone`], respectively.
     fn from(player: Option<Player>) -> Self {
-        match player {
-            None => Space::Empty,
-            Some(player) => Space::Stone(player),
-        }
+        player.map_or(Self::Empty, Self::Stone)
     }
 }
 
 impl From<Space> for Option<Player> {
     /// Maps [`Space::Empty`] and [`Space::Stone`] to [`None`] and [`Some`],
     /// respectively.
-    fn from(space: Space) -> Option<Player> {
+    fn from(space: Space) -> Self {
         match space {
             Space::Empty => None,
             Space::Stone(player) => Some(player),
@@ -84,7 +81,7 @@ pub struct MnkBoard<const R: usize, const C: usize, const K: usize> {
 impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// Returns a board filled with [`Space::Empty`].
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             row_array: [[Space::Empty; C]; R],
         }
