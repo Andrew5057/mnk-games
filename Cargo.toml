@@ -8,6 +8,5 @@ repository = "https://github.com/Andrew5057/mnk-games"
 license = "MIT"
 keywords = ["game", "math", "matrix", "game-theory"]
 categories = ["games", "mathematics"]
-publish = false
 
 [dependencies]
