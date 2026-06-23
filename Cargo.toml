@@ -2,5 +2,12 @@
 name = "mnk-games"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.96.0"
+description = "K-in-a-row games"
+repository = "https://github.com/Andrew5057/mnk-games"
+license = "MIT"
+keywords = ["game", "math", "matrix", "game-theory"]
+categories = ["games", "mathematics"]
+publish = false
 
 [dependencies]
