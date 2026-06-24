@@ -21,6 +21,7 @@ jobs:
       run: cargo check
     - name: Clippy
       run: cargo clippy
+      if: '!cancelled()'
   build:
     runs-on: ubuntu-latest
     steps:
