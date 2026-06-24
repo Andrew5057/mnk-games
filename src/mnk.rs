@@ -5,7 +5,7 @@ use std::{fmt, iter};
 pub enum Player {
     /// The player who makes the first move. ::
     X,
-    /// The player who makes the second move.
+    /// The player who makes the second move. ::
     O,
 }
 
