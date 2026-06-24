@@ -30,7 +30,7 @@ pub enum Space {
 }
 
 impl fmt::Display for Space {
-    /// Writes a space for [`Space::Empty`] and the player for a [`Space::Stone`].
+    /// Writes a space character for [`Space::Empty`] and the player name for a [`Space::Stone`].
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Empty => write!(f, " "),
@@ -57,19 +57,20 @@ impl From<Space> for Option<Player> {
     }
 }
 
-/// An [*m,n,k*-game].
+/// The board state of an [*m,n,k*-game].
 ///
 /// *M,n,k*-games are two-player games played on an *m*-by-*n* board. Each [`Player`] takes turns
-/// placing a [`Stone`][Space::Stone] in a free [`Space`] on the board. A player wins when they have
-/// placed *k* consecutive stones across a row, column, or diagonal. The game is drawn if there are
-/// no free spaces and neither player has won.
+/// placing a stone in an empty [`Space`] on the board. A player wins when they have placed *k*
+/// consecutive stones across a row, column, or diagonal. The game is drawn if there are no free
+/// spaces and neither player has won.
 ///
-/// Although *m,n,k*-games do not necessarily have a meaningful notion of orientation, an
-/// `MnkBoard<R, C, K>` has `R` rows and `C` columns, with a winner declared after a player has `K`
-/// stones in a row. Another type can redefine this orientation if such an inversion is more
-/// convenient.
+/// An `MnkBoard<R, C, K>` struct has `R` rows and `C` columns of spaces. It considers a winner
+/// to be a player with `K` stones in a row. However, the choice of which dimension represents the
+/// number of rows is arbitrary; it is okay for other structs employing an `MnkBoard<R, C, K>` to
+/// reinterpret `R` to be the number of columns and `C` to be the number of rows as long as
+/// user-facing behavior is consistent with this assignment.
 ///
-/// `K` must be nonzero. There are no guarantees for methods on `MnkBoard<R, C, 0>`; panics are
+/// `K` must be nonzero. There are no guarantees for methods on an `MnkBoard<R, C, 0>`; panics are
 /// possible.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
@@ -132,7 +133,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         winners.find(Option::is_some).flatten()
     }
 
-    /// Returns the first [`Player`] to have `K` consecutive [`Space`]s in the [`Iterator`].
+    /// Returns the first [`Player`] to have `K` consecutive [`Space`] instances in the
+    /// [`Iterator`].
     fn winner_in_run(run: impl IntoIterator<Item = Space>) -> Option<Player> {
         let mut consecutive = 0;
         let mut previous = Space::Empty;
