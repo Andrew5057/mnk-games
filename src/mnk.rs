@@ -3,7 +3,7 @@ use std::{fmt, iter};
 /// One of two players.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Player {
-    /// The player who makes the first move.
+    /// The player who makes the first move. ::
     X,
     /// The player who makes the second move.
     O,
