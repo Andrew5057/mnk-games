@@ -31,7 +31,7 @@ pub enum Space {
 
 impl fmt::Display for Space {
     /// Writes a space character for [`Space::Empty`] and the player name for a [`Space::Stone`].
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Self::Empty => write!(f, " "),
             Self::Stone(player) => write!(f, "{player}"),
