@@ -19,7 +19,6 @@ jobs:
     - uses: actions/checkout@v4
     - name: Clippy
       run: cargo clippy
-      if: '!cancelled()'
   build:
     runs-on: ubuntu-latest
     steps:
