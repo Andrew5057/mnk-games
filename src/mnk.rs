@@ -1,4 +1,4 @@
-use std::{fmt, iter, ops};
+use std::{fmt, iter};
 
 /// One of two players.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -106,11 +106,19 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
             }
         }
         if R >= K && C >= K {
-            let winner = Self::winner_in_runs(self.down_right_diagonals());
+            let mut winner = Self::winner_in_runs(self.top_right_diagonals());
             if winner.is_some() {
                 return winner;
             }
-            Self::winner_in_runs(self.down_left_diagonals())
+            winner = Self::winner_in_runs(self.left_down_diagonals());
+            if winner.is_some() {
+                return winner;
+            }
+            winner = Self::winner_in_runs(self.top_left_diagonals());
+            if winner.is_some() {
+                return winner;
+            }
+            Self::winner_in_runs(self.right_down_diagonals())
         } else {
             None
         }
@@ -165,32 +173,32 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         (0..C).map(|c| self.row_array.iter().map(move |row| row[c]))
     }
 
-    /// Returns an [`Iterator`] over the top-left to bottom-right diagonals of the board.
+    /// Returns an [`Iterator`] over diagonals that start at the top and move right.
     ///
     /// Only iterates over diagonals of length at least `K`.
-    fn down_right_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        let top_diags =
-            (0..=(C - K)).map(|left_col| self.coords_to_spaces(iter::zip(0..R, left_col..C)));
-        let left_diags =
-            (1..=(R - K)).map(|top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)));
-        top_diags.chain(left_diags)
+    fn top_right_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
+        (0..=(C - K)).map(|left_col| self.coords_to_spaces(iter::zip(0..R, left_col..C)))
     }
 
-    /// Returns an [`Iterator`] over the top-right to bottom-left diagonals of the board.
+    /// Returns an [`Iterator`] over diagonals that start on the left and move down.
+    ///
+    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`.
+    fn left_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
+        (1..=(R - K)).map(|top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)))
+    }
+
+    /// Returns an [`Iterator`] over the diagonals that start at the top and move left.
     ///
     /// Only iterates over diagonals of length at least `K`.
-    fn down_left_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        type RangeMap<T> = iter::Map<ops::Range<usize>, Box<T>>;
-        let top_diags: RangeMap<dyn FnMut(usize) -> Box<dyn Iterator<Item = Space>>> = ((K - 1)..C)
-            .map(Box::new(|last_col| {
-                Box::new(self.coords_to_spaces(iter::zip(0..R, (0..=last_col).rev())))
-            }));
-        let right_diags: RangeMap<dyn FnMut(usize) -> Box<dyn Iterator<Item = Space>>> =
-            // The +1 avoids  Range/RangeInclusive mismatch so we don't have to box the whole thing
-            (1..(R - K + 1)).map(Box::new(|last_row| {
-                Box::new(self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
-            }));
-        top_diags.chain(right_diags)
+    fn top_left_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
+        ((K - 1)..C).map(|last_col| self.coords_to_spaces(iter::zip(0..R, (0..=last_col).rev())))
+    }
+
+    /// Returns an [`Iterator`] over the diagonals that start on the right and move down.
+    ///
+    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`.
+    fn right_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
+        (1..=(R - K)).map(|last_row| self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
     }
 }
 
@@ -301,6 +309,39 @@ mod test_winner_in_run {
 }
 
 #[cfg(test)]
+mod test_winner_in_runs {
+    use super::*;
+
+    #[test]
+    fn test_trivial() {
+        let empty: iter::Empty<iter::Empty<Space>> = iter::empty();
+        assert!(MnkBoard::<0, 0, 1>::winner_in_runs(empty).is_none());
+
+        let single = iter::once(iter::once(Space::Stone(Player::X)));
+        assert_eq!(MnkBoard::<0, 0, 1>::winner_in_runs(single), Some(Player::X));
+    }
+
+    #[test]
+    fn test_several_runs() {
+        let delayed = [
+            iter::once(Space::Empty),
+            iter::once(Space::Stone(Player::X)),
+        ];
+        assert_eq!(
+            MnkBoard::<0, 0, 1>::winner_in_runs(delayed.into_iter()),
+            Some(Player::X)
+        );
+
+        let all_empty = [
+            iter::once(Space::Empty),
+            iter::once(Space::Empty),
+            iter::once(Space::Empty),
+        ];
+        assert!(MnkBoard::<0, 0, 1>::winner_in_runs(all_empty.into_iter()).is_none());
+    }
+}
+
+#[cfg(test)]
 mod test_winner {
     use super::*;
 
@@ -333,8 +374,8 @@ mod test_winner {
     }
 
     #[test]
-    fn test_row_wins() {
-        let first_row_win = MnkBoard::<3, 3, 3>::from([
+    fn test_row_win() {
+        let row_win = MnkBoard::<3, 3, 3>::from([
             [
                 Space::Stone(Player::X),
                 Space::Stone(Player::X),
@@ -343,99 +384,59 @@ mod test_winner {
             [Space::Empty, Space::Empty, Space::Empty],
             [Space::Empty, Space::Empty, Space::Empty],
         ]);
-        assert_eq!(first_row_win.winner(), Some(Player::X));
-        let second_row_win = MnkBoard::<3, 3, 3>::from([
-            [Space::Empty, Space::Empty, Space::Empty],
-            [
-                Space::Stone(Player::X),
-                Space::Stone(Player::X),
-                Space::Stone(Player::X),
-            ],
-            [Space::Empty, Space::Empty, Space::Empty],
-        ]);
-        assert_eq!(second_row_win.winner(), Some(Player::X));
-        let third_row_win = MnkBoard::<3, 3, 3>::from([
-            [Space::Empty, Space::Empty, Space::Empty],
-            [Space::Empty, Space::Empty, Space::Empty],
-            [
-                Space::Stone(Player::X),
-                Space::Stone(Player::X),
-                Space::Stone(Player::X),
-            ],
-        ]);
-        assert_eq!(third_row_win.winner(), Some(Player::X));
+        assert_eq!(row_win.winner(), Some(Player::X));
     }
 
     #[test]
-    fn test_column_wins() {
-        let first_column_win = MnkBoard::<3, 3, 3>::from([
+    fn test_column_win() {
+        let column_win = MnkBoard::<3, 3, 3>::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
         ]);
-        assert_eq!(first_column_win.winner(), Some(Player::X));
-
-        let second_column_win = MnkBoard::<3, 3, 3>::from([
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-        ]);
-        assert_eq!(second_column_win.winner(), Some(Player::X));
-
-        let third_column_win = MnkBoard::<3, 3, 3>::from([
-            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
-            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
-            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
-        ]);
-        assert_eq!(third_column_win.winner(), Some(Player::X));
+        assert_eq!(column_win.winner(), Some(Player::X));
     }
 
     #[test]
-    fn test_down_right_wins() {
-        let first_down_right_win = MnkBoard::<3, 3, 2>::from([
+    fn test_top_right_win() {
+        let top_right_win = MnkBoard::<3, 3, 2>::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Empty, Space::Empty],
         ]);
-        assert_eq!(first_down_right_win.winner(), Some(Player::X));
-
-        let second_down_right_win = MnkBoard::<3, 3, 2>::from([
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
-            [Space::Empty, Space::Empty, Space::Empty],
-        ]);
-        assert_eq!(second_down_right_win.winner(), Some(Player::X));
-
-        let third_down_right_win = MnkBoard::<3, 3, 2>::from([
-            [Space::Empty, Space::Empty, Space::Empty],
-            [Space::Stone(Player::X), Space::Empty, Space::Empty],
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-        ]);
-        assert_eq!(third_down_right_win.winner(), Some(Player::X));
+        assert_eq!(top_right_win.winner(), Some(Player::X));
     }
 
     #[test]
-    fn test_down_left_wins() {
-        let first_down_left_win = MnkBoard::<3, 3, 2>::from([
+    fn test_left_down_win() {
+        let left_down_win = MnkBoard::<4, 3, 3>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Stone(Player::X), Space::Empty, Space::Empty],
+            [Space::Empty, Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
+        ]);
+        assert_eq!(left_down_win.winner(), Some(Player::X));
+    }
+
+    #[test]
+    fn test_top_left_win() {
+        let top_left_win = MnkBoard::<3, 3, 2>::from([
             [Space::Empty, Space::Empty, Space::Stone(Player::X)],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Empty, Space::Empty],
         ]);
-        assert_eq!(first_down_left_win.winner(), Some(Player::X));
+        assert_eq!(top_left_win.winner(), Some(Player::X));
+    }
 
-        let second_down_left_win = MnkBoard::<3, 3, 2>::from([
+    #[test]
+    fn test_right_down_win() {
+        let right_down_win = MnkBoard::<4, 3, 3>::from([
+            [Space::Empty, Space::Empty, Space::Empty],
+            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
-            [Space::Empty, Space::Empty, Space::Empty],
         ]);
-        assert_eq!(second_down_left_win.winner(), Some(Player::X));
-
-        let third_down_left_win = MnkBoard::<3, 3, 2>::from([
-            [Space::Empty, Space::Empty, Space::Empty],
-            [Space::Empty, Space::Empty, Space::Stone(Player::X)],
-            [Space::Empty, Space::Stone(Player::X), Space::Empty],
-        ]);
-        assert_eq!(third_down_left_win.winner(), Some(Player::X));
+        assert_eq!(right_down_win.winner(), Some(Player::X));
     }
 }
 
@@ -589,10 +590,10 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_down_right() {
+    fn test_top_right() {
         let board = square_board();
-        let diags: Vec<Vec<Space>> = board.down_right_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 5);
+        let diags: Vec<Vec<Space>> = board.top_right_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
             Space::Empty,
@@ -617,28 +618,35 @@ mod test_square_board {
             Space::Empty,
         ];
         assert!(diags.contains(&third_diag));
-
-        let fourth_diag = vec![
-            Space::Stone(Player::X),
-            Space::Empty,
-            Space::Empty,
-            Space::Stone(Player::O),
-        ];
-        assert!(diags.contains(&fourth_diag));
-
-        let fifth_diag = vec![
-            Space::Stone(Player::O),
-            Space::Stone(Player::X),
-            Space::Empty,
-        ];
-        assert!(diags.contains(&fifth_diag));
     }
 
     #[test]
-    fn test_down_left() {
+    fn test_left_down() {
         let board = square_board();
-        let diags: Vec<Vec<Space>> = board.down_left_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 5);
+        let diags: Vec<Vec<Space>> = board.left_down_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
+
+        let first_diag = vec![
+            Space::Stone(Player::X),
+            Space::Empty,
+            Space::Empty,
+            Space::Stone(Player::O),
+        ];
+        assert!(diags.contains(&first_diag));
+
+        let second_diag = vec![
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+            Space::Empty,
+        ];
+        assert!(diags.contains(&second_diag));
+    }
+
+    #[test]
+    fn test_top_left() {
+        let board = square_board();
+        let diags: Vec<Vec<Space>> = board.top_left_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
             Space::Stone(Player::O),
@@ -662,17 +670,24 @@ mod test_square_board {
             Space::Stone(Player::X),
         ];
         assert!(diags.contains(&third_diag));
+    }
 
-        let fourth_diag = vec![
+    #[test]
+    fn test_right_down() {
+        let board = square_board();
+        let diags: Vec<Vec<Space>> = board.right_down_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
+
+        let first_diag = vec![
             Space::Stone(Player::O),
             Space::Stone(Player::O),
             Space::Empty,
             Space::Stone(Player::O),
         ];
-        assert!(diags.contains(&fourth_diag));
+        assert!(diags.contains(&first_diag));
 
-        let fifth_diag = vec![Space::Empty, Space::Stone(Player::O), Space::Empty];
-        assert!(diags.contains(&fifth_diag));
+        let second_diag = vec![Space::Empty, Space::Stone(Player::O), Space::Empty];
+        assert!(diags.contains(&second_diag));
     }
 }
 
@@ -749,10 +764,10 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_tall_down_right_diags() {
+    fn test_tall_top_right_diags() {
         let board = tall_board();
-        let diags: Vec<Vec<Space>> = board.down_right_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 4);
+        let diags: Vec<Vec<Space>> = board.top_right_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
             Space::Empty,
@@ -768,31 +783,16 @@ mod test_rectangular_boards {
             Space::Stone(Player::O),
         ];
         assert!(diags.contains(&second_diag));
-
-        let third_diag = vec![
-            Space::Stone(Player::X),
-            Space::Empty,
-            Space::Empty,
-            Space::Stone(Player::O),
-        ];
-        assert!(diags.contains(&third_diag));
-
-        let fourth_diag = vec![
-            Space::Stone(Player::O),
-            Space::Stone(Player::X),
-            Space::Empty,
-        ];
-        assert!(diags.contains(&fourth_diag));
     }
 
     #[test]
-    fn test_tall_down_left_diags() {
+    fn test_tall_left_down_diags() {
         let board = tall_board();
-        let diags: Vec<Vec<Space>> = board.down_left_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 4);
+        let diags: Vec<Vec<Space>> = board.left_down_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
-            Space::Empty,
+            Space::Stone(Player::X),
             Space::Empty,
             Space::Empty,
             Space::Stone(Player::O),
@@ -801,65 +801,99 @@ mod test_rectangular_boards {
 
         let second_diag = vec![
             Space::Stone(Player::O),
-            Space::Stone(Player::O),
-            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+            Space::Empty,
         ];
         assert!(diags.contains(&second_diag));
-
-        let third_diag = vec![
-            Space::Stone(Player::X),
-            Space::Stone(Player::X),
-            Space::Stone(Player::X),
-            Space::Stone(Player::X),
-        ];
-        assert!(diags.contains(&third_diag));
-
-        let fourth_diag = vec![
-            Space::Stone(Player::O),
-            Space::Empty,
-            Space::Stone(Player::O),
-        ];
-        assert!(diags.contains(&fourth_diag));
     }
 
     #[test]
-    fn test_wide_down_right_diags() {
-        let board = wide_board();
-        let diags: Vec<Vec<Space>> = board.down_right_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 4);
+    fn test_tall_top_left_diags() {
+        let board = tall_board();
+        let diags: Vec<Vec<Space>> = board.top_left_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
             Space::Empty,
-            Space::Stone(Player::O),
-            Space::Stone(Player::X),
+            Space::Empty,
+            Space::Empty,
             Space::Stone(Player::O),
         ];
         assert!(diags.contains(&first_diag));
 
         let second_diag = vec![
-            Space::Stone(Player::X),
-            Space::Empty,
             Space::Stone(Player::O),
-            Space::Stone(Player::X),
+            Space::Stone(Player::O),
+            Space::Stone(Player::O),
         ];
         assert!(diags.contains(&second_diag));
-
-        let third_diag = vec![
-            Space::Stone(Player::O),
-            Space::Stone(Player::X),
-            Space::Empty,
-        ];
-        assert!(diags.contains(&third_diag));
-
-        let fourth_diag = vec![Space::Stone(Player::X), Space::Empty, Space::Empty];
-        assert!(diags.contains(&fourth_diag));
     }
 
     #[test]
-    fn test_short_down_left_diags() {
+    fn test_tall_right_down_diags() {
+        let board = tall_board();
+        let diags: Vec<Vec<Space>> = board.right_down_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 2);
+
+        let first_diag = vec![
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+            Space::Stone(Player::X),
+        ];
+        assert!(diags.contains(&first_diag));
+
+        let second_diag = vec![
+            Space::Stone(Player::O),
+            Space::Empty,
+            Space::Stone(Player::O),
+        ];
+        assert!(diags.contains(&second_diag));
+    }
+
+    #[test]
+    fn test_wide_top_right_diags() {
         let board = wide_board();
-        let diags: Vec<Vec<Space>> = board.down_left_diagonals().map(|r| r.collect()).collect();
-        assert_eq!(diags.len(), 4);
+        let diags: Vec<Vec<Space>> = board.top_right_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 3);
+
+        let first_diag = vec![
+            Space::Empty,
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+            Space::Stone(Player::O),
+        ];
+        assert!(diags.contains(&first_diag));
+
+        let second_diag = vec![
+            Space::Stone(Player::X),
+            Space::Empty,
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+        ];
+        assert!(diags.contains(&second_diag));
+
+        let third_diag = vec![
+            Space::Stone(Player::O),
+            Space::Stone(Player::X),
+            Space::Empty,
+        ];
+        assert!(diags.contains(&third_diag));
+    }
+
+    #[test]
+    fn test_wide_left_down_diags() {
+        let board = wide_board();
+        let diags: Vec<Vec<Space>> = board.left_down_diagonals().map(|r| r.collect()).collect();
+        let diag = vec![Space::Stone(Player::X), Space::Empty, Space::Empty];
+        assert_eq!(diags, [diag]);
+    }
+
+    #[test]
+    fn test_wide_top_left_diags() {
+        let board = wide_board();
+        let diags: Vec<Vec<Space>> = board.top_left_diagonals().map(|r| r.collect()).collect();
+        assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
             Space::Stone(Player::X),
@@ -883,13 +917,18 @@ mod test_rectangular_boards {
             Space::Stone(Player::O),
         ];
         assert!(diags.contains(&third_diag));
+    }
 
-        let fourth_diag = vec![
+    #[test]
+    fn test_wide_right_up_diags() {
+        let board = wide_board();
+        let diags: Vec<Vec<Space>> = board.right_down_diagonals().map(|r| r.collect()).collect();
+        let diag = vec![
             Space::Stone(Player::O),
             Space::Stone(Player::O),
             Space::Empty,
         ];
-        assert!(diags.contains(&fourth_diag));
+        assert_eq!(diags, [diag]);
     }
 }
 
