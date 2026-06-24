@@ -168,7 +168,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Returns an [`Iterator`] over the rows of the board.
-    fn rows(&self) -> [[Space; C]; R] {
+    const fn rows(&self) -> [[Space; C]; R] {
         self.row_array
     }
 
