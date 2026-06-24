@@ -12,7 +12,7 @@ pub enum Player {
 impl fmt::Display for Player {
     /// Writes "X" for [`Player::X`] and "O" for [`Player::O`].
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self
+        match *self {
             Self::X => write!(f, "X"),
             Self::O => write!(f, "O"),
         }
