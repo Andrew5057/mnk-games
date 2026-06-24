@@ -125,13 +125,15 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Returns the first [`Player`] to be a winner in any of the passed runs.
-    fn winner_in_runs(runs: impl Iterator<Item = impl Iterator<Item = Space>>) -> Option<Player> {
-        let mut winners = runs.map(Self::winner_in_run);
+    fn winner_in_runs(
+        runs: impl IntoIterator<Item = impl IntoIterator<Item = Space>>,
+    ) -> Option<Player> {
+        let mut winners = runs.into_iter().map(Self::winner_in_run);
         winners.find(Option::is_some).flatten()
     }
 
     /// Returns the first [`Player`] to have `K` consecutive [`Space`]s in the [`Iterator`].
-    fn winner_in_run(run: impl Iterator<Item = Space>) -> Option<Player> {
+    fn winner_in_run(run: impl IntoIterator<Item = Space>) -> Option<Player> {
         let mut consecutive = 0;
         let mut previous = Space::Empty;
         for space in run {
@@ -164,13 +166,13 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Returns an [`Iterator`] over the rows of the board.
-    fn rows(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        self.row_array.into_iter().map(IntoIterator::into_iter)
+    fn rows(&self) -> [[Space; C]; R] {
+        self.row_array
     }
 
     /// Returns an [`Iterator`] over the columns of the board.
-    fn columns(&self) -> impl Iterator<Item = impl Iterator<Item = Space>> {
-        (0..C).map(|c| self.row_array.iter().map(move |row| row[c]))
+    fn columns(&self) -> impl Iterator<Item = [Space; R]> {
+        (0..C).map(|c| self.row_array.map(move |row| row[c]))
     }
 
     /// Returns an [`Iterator`] over diagonals that start at the top and move right.
@@ -209,27 +211,21 @@ mod test_winner_in_run {
     #[test]
     fn test_trivial() {
         let empty: [Space; 0] = [];
-        assert!(MnkBoard::<0, 0, 1>::winner_in_run(empty.into_iter()).is_none());
-        assert!(MnkBoard::<0, 0, 2>::winner_in_run(empty.into_iter()).is_none());
-        assert!(MnkBoard::<0, 0, 3>::winner_in_run(empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 1>::winner_in_run(empty).is_none());
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(empty).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(empty).is_none());
 
         let one_empty = [Space::Empty];
-        assert!(MnkBoard::<0, 0, 1>::winner_in_run(one_empty.into_iter()).is_none());
-        assert!(MnkBoard::<0, 0, 2>::winner_in_run(one_empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 1>::winner_in_run(one_empty).is_none());
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(one_empty).is_none());
 
         let one_x = [Space::Stone(Player::X)];
-        assert_eq!(
-            MnkBoard::<1, 1, 1>::winner_in_run(one_x.into_iter()),
-            Some(Player::X)
-        );
-        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_x.into_iter()).is_none());
+        assert_eq!(MnkBoard::<1, 1, 1>::winner_in_run(one_x), Some(Player::X));
+        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_x).is_none());
 
         let one_o = [Space::Stone(Player::O)];
-        assert_eq!(
-            MnkBoard::<1, 1, 1>::winner_in_run(one_o.into_iter()),
-            Some(Player::O)
-        );
-        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_o.into_iter()).is_none());
+        assert_eq!(MnkBoard::<1, 1, 1>::winner_in_run(one_o), Some(Player::O));
+        assert!(MnkBoard::<1, 1, 2>::winner_in_run(one_o).is_none());
     }
 
     #[test]
@@ -242,10 +238,10 @@ mod test_winner_in_run {
             Space::Stone(Player::X),
         ];
         assert_eq!(
-            MnkBoard::<0, 0, 3>::winner_in_run(right_run.into_iter()),
+            MnkBoard::<0, 0, 3>::winner_in_run(right_run),
             Some(Player::X)
         );
-        assert!(MnkBoard::<0, 0, 4>::winner_in_run(right_run.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 4>::winner_in_run(right_run).is_none());
 
         let interrupted = [
             Space::Stone(Player::X),
@@ -255,10 +251,10 @@ mod test_winner_in_run {
             Space::Stone(Player::X),
         ];
         assert_eq!(
-            MnkBoard::<0, 0, 2>::winner_in_run(interrupted.into_iter()),
+            MnkBoard::<0, 0, 2>::winner_in_run(interrupted),
             Some(Player::X)
         );
-        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted).is_none());
 
         let bookend = [
             Space::Empty,
@@ -267,11 +263,8 @@ mod test_winner_in_run {
             Space::Stone(Player::X),
             Space::Empty,
         ];
-        assert_eq!(
-            MnkBoard::<0, 0, 3>::winner_in_run(bookend.into_iter()),
-            Some(Player::X)
-        );
-        assert!(MnkBoard::<0, 0, 4>::winner_in_run(bookend.into_iter()).is_none());
+        assert_eq!(MnkBoard::<0, 0, 3>::winner_in_run(bookend), Some(Player::X));
+        assert!(MnkBoard::<0, 0, 4>::winner_in_run(bookend).is_none());
     }
 
     #[test]
@@ -282,10 +275,10 @@ mod test_winner_in_run {
             Space::Stone(Player::O),
         ];
         assert_eq!(
-            MnkBoard::<0, 0, 2>::winner_in_run(left_heavy.into_iter()),
+            MnkBoard::<0, 0, 2>::winner_in_run(left_heavy),
             Some(Player::X)
         );
-        assert!(MnkBoard::<0, 0, 3>::winner_in_run(left_heavy.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(left_heavy).is_none());
 
         let right_heavy = [
             Space::Stone(Player::O),
@@ -293,18 +286,18 @@ mod test_winner_in_run {
             Space::Stone(Player::X),
         ];
         assert_eq!(
-            MnkBoard::<0, 0, 2>::winner_in_run(right_heavy.into_iter()),
+            MnkBoard::<0, 0, 2>::winner_in_run(right_heavy),
             Some(Player::X)
         );
-        assert!(MnkBoard::<0, 0, 3>::winner_in_run(right_heavy.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(right_heavy).is_none());
 
         let interrupted = [
             Space::Stone(Player::X),
             Space::Stone(Player::O),
             Space::Stone(Player::X),
         ];
-        assert!(MnkBoard::<0, 0, 2>::winner_in_run(interrupted.into_iter()).is_none());
-        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 2>::winner_in_run(interrupted).is_none());
+        assert!(MnkBoard::<0, 0, 3>::winner_in_run(interrupted).is_none());
     }
 }
 
@@ -328,7 +321,7 @@ mod test_winner_in_runs {
             iter::once(Space::Stone(Player::X)),
         ];
         assert_eq!(
-            MnkBoard::<0, 0, 1>::winner_in_runs(delayed.into_iter()),
+            MnkBoard::<0, 0, 1>::winner_in_runs(delayed),
             Some(Player::X)
         );
 
@@ -337,7 +330,7 @@ mod test_winner_in_runs {
             iter::once(Space::Empty),
             iter::once(Space::Empty),
         ];
-        assert!(MnkBoard::<0, 0, 1>::winner_in_runs(all_empty.into_iter()).is_none());
+        assert!(MnkBoard::<0, 0, 1>::winner_in_runs(all_empty).is_none());
     }
 }
 
@@ -488,10 +481,10 @@ mod test_square_board {
     #[test]
     fn test_rows() {
         let board = square_board();
-        let rows: Vec<Vec<Space>> = board.rows().map(|r| r.collect()).collect();
+        let rows = board.rows();
         assert_eq!(rows.len(), 5);
 
-        let top_row = vec![
+        let top_row = [
             Space::Empty,
             Space::Stone(Player::X),
             Space::Stone(Player::O),
@@ -500,7 +493,7 @@ mod test_square_board {
         ];
         assert!(rows.contains(&top_row));
 
-        let second_row = vec![
+        let second_row = [
             Space::Stone(Player::X),
             Space::Stone(Player::O),
             Space::Empty,
@@ -509,7 +502,7 @@ mod test_square_board {
         ];
         assert!(rows.contains(&second_row));
 
-        let third_row = vec![
+        let third_row = [
             Space::Stone(Player::O),
             Space::Empty,
             Space::Stone(Player::X),
@@ -518,7 +511,7 @@ mod test_square_board {
         ];
         assert!(rows.contains(&third_row));
 
-        let fourth_row = vec![
+        let fourth_row = [
             Space::Stone(Player::O),
             Space::Stone(Player::X),
             Space::Empty,
@@ -527,7 +520,7 @@ mod test_square_board {
         ];
         assert!(rows.contains(&fourth_row));
 
-        let fifth_row = vec![
+        let fifth_row = [
             Space::Stone(Player::X),
             Space::Stone(Player::O),
             Space::Empty,
@@ -540,10 +533,10 @@ mod test_square_board {
     #[test]
     fn test_columns() {
         let board = square_board();
-        let columns: Vec<Vec<Space>> = board.columns().map(|r| r.collect()).collect();
+        let columns: Vec<[Space; 5]> = board.columns().collect();
         assert_eq!(columns.len(), 5);
 
-        let first_col = vec![
+        let first_col = [
             Space::Empty,
             Space::Stone(Player::X),
             Space::Stone(Player::O),
@@ -552,7 +545,7 @@ mod test_square_board {
         ];
         assert!(columns.contains(&first_col));
 
-        let second_col = vec![
+        let second_col = [
             Space::Stone(Player::X),
             Space::Stone(Player::O),
             Space::Empty,
@@ -561,7 +554,7 @@ mod test_square_board {
         ];
         assert!(columns.contains(&second_col));
 
-        let third_col = vec![
+        let third_col = [
             Space::Stone(Player::O),
             Space::Empty,
             Space::Stone(Player::X),
@@ -570,7 +563,7 @@ mod test_square_board {
         ];
         assert!(columns.contains(&third_col));
 
-        let fourth_col = vec![
+        let fourth_col = [
             Space::Empty,
             Space::Stone(Player::X),
             Space::Stone(Player::O),
@@ -579,7 +572,7 @@ mod test_square_board {
         ];
         assert!(columns.contains(&fourth_col));
 
-        let fifth_col = vec![
+        let fifth_col = [
             Space::Stone(Player::X),
             Space::Stone(Player::O),
             Space::Empty,
