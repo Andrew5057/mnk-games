@@ -17,8 +17,6 @@ jobs:
       RUSTFLAGS: "-D warnings"
     steps:
     - uses: actions/checkout@v4
-    - name: Rustc
-      run: cargo check
     - name: Clippy
       run: cargo clippy
       if: '!cancelled()'
