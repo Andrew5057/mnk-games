@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::{fmt, iter};
 
 /// One of two players.
@@ -57,6 +58,39 @@ impl From<Space> for Option<Player> {
     }
 }
 
+/// An error which can occur when trying to place a stone.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[non_exhaustive]
+pub enum PlaceError {
+    /// An error which can occur when the location already contains a [`Space::Stone`].
+    Occupied {
+        /// The player who owns the blocking [`Space::Stone`].
+        player: Player,
+    },
+    /// An error which can occur when the intended location is not within the board's bounds.
+    OutOfBounds {
+        /// The intended (potentially out-of-bounds) row.
+        row: usize,
+        /// The intended (potentially out-of-bounds) column.
+        column: usize,
+    },
+}
+
+impl fmt::Display for PlaceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Occupied { player } => {
+                write!(f, "already occupied by {player}")
+            }
+            Self::OutOfBounds { row, column } => {
+                write!(f, "out of bounds (row {row}, column {column})")
+            }
+        }
+    }
+}
+
+impl Error for PlaceError {}
+
 /// The board state of an [*m,n,k*-game].
 ///
 /// *M,n,k*-games are two-player games played on an *m*-by-*n* board. Each [`Player`] takes turns
@@ -70,8 +104,7 @@ impl From<Space> for Option<Player> {
 /// reinterpret `R` to be the number of columns and `C` to be the number of rows as long as
 /// user-facing behavior is consistent with this assignment.
 ///
-/// `K` must be nonzero. There are no guarantees for methods on an `MnkBoard<R, C, 0>`; panics are
-/// possible.
+/// Methods for this struct are 0-indexed.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -86,6 +119,31 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         Self {
             row_array: [[Space::Empty; C]; R],
         }
+    }
+
+    /// Attempts to place a stone on the board.
+    ///
+    /// If the [`Space`] at the specified row and column is [`Space::Empty`], replaces it with a
+    /// [`Space::Stone`] corresponding to `player`.
+    ///
+    /// # Errors
+    ///  - [`PlaceError::Occupied`] if the corresponding `Space` is already a `Space::Stone`.
+    ///  - [`PlaceError::OutOfBounds`] if `row >= R` or `column >= C`.
+    pub fn place(&mut self, player: Player, row: usize, column: usize) -> Result<(), PlaceError> {
+        let location = self
+            .row_array
+            .get_mut(row)
+            .and_then(|row| row.get_mut(column));
+        location.map_or(
+            Err(PlaceError::OutOfBounds { row, column }),
+            |space| match space {
+                Space::Stone(player) => Err(PlaceError::Occupied { player: *player }),
+                Space::Empty => {
+                    *space = Space::Stone(player);
+                    Ok(())
+                }
+            },
+        )
     }
 
     /// Returns the winner of the game, or [`None`] if neither player has won.
@@ -160,6 +218,9 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Converts (row, column) pairs to their corresponding [`Space`] instances.
+    ///
+    /// # Panics
+    ///  - If a coordinate pair is out of bounds.
     fn coords_to_spaces(
         &self,
         coords: impl Iterator<Item = (usize, usize)>,
@@ -205,6 +266,123 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     fn right_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
         (1..=(R - K))
             .map(move |last_row| self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
+    }
+}
+
+#[cfg(test)]
+mod test_place {
+    use super::*;
+
+    #[test]
+    fn test_success() {
+        let mut empty = MnkBoard::<2, 2, 2>::new();
+
+        let top_left = empty.place(Player::X, 0, 0);
+        assert_eq!(top_left, Ok(()));
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Empty],
+                [Space::Empty, Space::Empty]
+            ]
+        );
+
+        let top_right = empty.place(Player::O, 0, 1);
+        assert_eq!(top_right, Ok(()));
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Empty, Space::Empty]
+            ]
+        );
+
+        let bottom_left = empty.place(Player::O, 1, 0);
+        assert_eq!(bottom_left, Ok(()));
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Empty]
+            ]
+        );
+
+        let bottom_right = empty.place(Player::X, 1, 1);
+        assert_eq!(bottom_right, Ok(()));
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Stone(Player::X)]
+            ]
+        );
+    }
+
+    #[test]
+    fn test_occupied() {
+        let mut full = MnkBoard::<2, 2, 2>::from([
+            [Space::Stone(Player::X), Space::Stone(Player::O)],
+            [Space::Stone(Player::O), Space::Stone(Player::X)],
+        ]);
+
+        let top_left_x = full.place(Player::X, 0, 0);
+        assert_eq!(top_left_x, Err(PlaceError::Occupied { player: Player::X }));
+        let top_left_o = full.place(Player::O, 0, 0);
+        assert_eq!(top_left_o, Err(PlaceError::Occupied { player: Player::X }));
+
+        let top_right_x = full.place(Player::X, 0, 1);
+        assert_eq!(top_right_x, Err(PlaceError::Occupied { player: Player::O }));
+        let top_right_o = full.place(Player::O, 0, 1);
+        assert_eq!(top_right_o, Err(PlaceError::Occupied { player: Player::O }));
+
+        let bottom_left_x = full.place(Player::X, 1, 0);
+        assert_eq!(
+            bottom_left_x,
+            Err(PlaceError::Occupied { player: Player::O })
+        );
+        let bottom_left_o = full.place(Player::O, 1, 0);
+        assert_eq!(
+            bottom_left_o,
+            Err(PlaceError::Occupied { player: Player::O })
+        );
+
+        let bottom_right_x = full.place(Player::X, 1, 1);
+        assert_eq!(
+            bottom_right_x,
+            Err(PlaceError::Occupied { player: Player::X })
+        );
+        let bottom_right_o = full.place(Player::O, 1, 1);
+        assert_eq!(
+            bottom_right_o,
+            Err(PlaceError::Occupied { player: Player::X })
+        );
+    }
+
+    #[test]
+    fn test_out_of_bounds() {
+        let mut empty = MnkBoard::<2, 2, 2>::new();
+
+        let high_row_x = empty.place(Player::X, 2, 0);
+        assert_eq!(
+            high_row_x,
+            Err(PlaceError::OutOfBounds { row: 2, column: 0 })
+        );
+        let high_row_o = empty.place(Player::O, 2, 0);
+        assert_eq!(
+            high_row_o,
+            Err(PlaceError::OutOfBounds { row: 2, column: 0 })
+        );
+
+        let high_column_x = empty.place(Player::X, 0, 2);
+        assert_eq!(
+            high_column_x,
+            Err(PlaceError::OutOfBounds { row: 0, column: 2 })
+        );
+        let high_column_o = empty.place(Player::O, 0, 2);
+        assert_eq!(
+            high_column_o,
+            Err(PlaceError::OutOfBounds { row: 0, column: 2 })
+        );
     }
 }
 
