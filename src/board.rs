@@ -430,7 +430,7 @@ mod test_placers {
     }
 
     #[test]
-    fn place_unsafe_empty() {
+    fn place_unchecked_empty() {
         let mut empty = MnkBoard::<2, 2, 2>::new();
 
         unsafe {
@@ -479,7 +479,7 @@ mod test_placers {
     }
 
     #[test]
-    fn place_unsafe_occupied() {
+    fn place_unchecked_occupied() {
         let mut all_x = MnkBoard::<2, 2, 2>::from([
             [Space::Stone(Player::X), Space::Stone(Player::X)],
             [Space::Stone(Player::X), Space::Stone(Player::X)],
@@ -561,7 +561,7 @@ mod test_getters {
     }
 
     #[test]
-    fn get_unsafe() {
+    fn get_unchecked() {
         let board = square();
 
         let top_left;
