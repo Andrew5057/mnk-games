@@ -204,6 +204,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Returns the first [`Player`] to be a winner in any of the passed runs.
+    #[must_use]
     fn winner_in_runs<'a>(
         runs: impl IntoIterator<Item = impl IntoIterator<Item = &'a Space>>,
     ) -> Option<Player> {
@@ -213,6 +214,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Returns the first [`Player`] to have `K` consecutive [`Space`] instances in the
     /// [`Iterator`].
+    #[must_use]
     fn winner_in_run<'a>(run: impl IntoIterator<Item = &'a Space>) -> Option<Player> {
         let mut consecutive = 0;
         let mut previous = &Space::Empty;
