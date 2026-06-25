@@ -104,7 +104,8 @@ impl Error for PlaceError {}
 /// reinterpret `R` to be the number of columns and `C` to be the number of rows as long as
 /// user-facing behavior is consistent with this assignment.
 ///
-/// Methods for this struct are 0-indexed.
+/// Methods for this struct are 0-indexed. Row indices at least `R` and column indices at least `C`
+/// are considered out of bounds.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -128,7 +129,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     ///
     /// # Errors
     ///  - [`PlaceError::Occupied`] if the corresponding `Space` is already a `Space::Stone`.
-    ///  - [`PlaceError::OutOfBounds`] if `row >= R` or `column >= C`.
+    ///  - [`PlaceError::OutOfBounds`] if either index is out of bounds.
     pub fn place(&mut self, player: Player, row: usize, column: usize) -> Result<(), PlaceError> {
         let location = self
             .row_array
@@ -144,6 +145,25 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
                 }
             },
         )
+    }
+
+    /// Returns the [`Space`] at the specified row and column.
+    ///
+    /// Returns [`None`] either index is out of bounds.
+    #[must_use]
+    pub fn get(&self, row: usize, column: usize) -> Option<&Space> {
+        self.row_array.get(row).and_then(|row| row.get(column))
+    }
+
+    /// Returns the [`Space`] at the specified row and column, without checking bounds.
+    ///
+    /// [`MnkBoard::get`] is a safe alternative.
+    ///
+    /// # Safety
+    /// Calling this function with an out-of-bounds index is undefined behavior.
+    #[must_use]
+    pub unsafe fn get_unchecked(&self, row: usize, column: usize) -> &Space {
+        unsafe { self.row_array.get_unchecked(row).get_unchecked(column) }
     }
 
     /// Returns the winner of the game, or [`None`] if neither player has won.
@@ -383,6 +403,56 @@ mod test_place {
             high_column_o,
             Err(PlaceError::OutOfBounds { row: 0, column: 2 })
         );
+    }
+}
+
+#[cfg(test)]
+mod test_getters {
+    use super::*;
+
+    fn square() -> MnkBoard<2, 2, 2> {
+        MnkBoard::<2, 2, 2>::from([
+            [Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Stone(Player::O)],
+        ])
+    }
+
+    #[test]
+    fn get_in_bounds() {
+        let board = square();
+
+        assert_eq!(board.get(0, 0), Some(&Space::Stone(Player::X)));
+        assert_eq!(board.get(0, 1), Some(&Space::Empty));
+        assert_eq!(board.get(1, 0), Some(&Space::Empty));
+        assert_eq!(board.get(1, 1), Some(&Space::Stone(Player::O)));
+    }
+
+    #[test]
+    fn get_out_of_bounds() {
+        let board = square();
+
+        assert_eq!(board.get(2, 0), None);
+        assert_eq!(board.get(0, 2), None);
+    }
+
+    #[test]
+    fn get_unsafe() {
+        let board = square();
+
+        let top_left;
+        let top_right;
+        let bottom_left;
+        let bottom_right;
+        unsafe {
+            top_left = board.get_unchecked(0, 0);
+            top_right = board.get_unchecked(0, 1);
+            bottom_left = board.get_unchecked(1, 0);
+            bottom_right = board.get_unchecked(1, 1);
+        }
+        assert_eq!(top_left, &Space::Stone(Player::X));
+        assert_eq!(top_right, &Space::Empty);
+        assert_eq!(bottom_left, &Space::Empty);
+        assert_eq!(bottom_right, &Space::Stone(Player::O));
     }
 }
 
