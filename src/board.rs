@@ -128,6 +128,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// [`Space::Stone`] corresponding to `player`.
     ///
     /// # Errors
+    ///
     ///  - [`PlaceError::Occupied`] if the corresponding `Space` is already a `Space::Stone`.
     ///  - [`PlaceError::OutOfBounds`] if either index is out of bounds.
     pub fn place(&mut self, player: Player, row: usize, column: usize) -> Result<(), PlaceError> {
@@ -147,6 +148,25 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         )
     }
 
+    /// Place a stone on the board without bounds or overlap checking.
+    ///
+    /// Places a new [`Space::Stone`] even if the [`Space`] is already one. [`MnkBoard::place`] is
+    /// a safe alternative.
+    ///
+    /// # Safety
+    ///
+    /// Both `row` and `column` must be in bounds.
+    pub unsafe fn place_unchecked(&mut self, player: Player, row: usize, column: usize) {
+        let location;
+        unsafe {
+            location = self
+                .row_array
+                .get_unchecked_mut(row)
+                .get_unchecked_mut(column);
+        }
+        *location = Space::Stone(player);
+    }
+
     /// Returns the [`Space`] at the specified row and column.
     ///
     /// Returns [`None`] either index is out of bounds.
@@ -160,7 +180,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// [`MnkBoard::get`] is a safe alternative.
     ///
     /// # Safety
-    /// Calling this function with an out-of-bounds index is undefined behavior.
+    ///
+    /// Both `row` and `column` must be in bounds.
     #[must_use]
     pub unsafe fn get_unchecked(&self, row: usize, column: usize) -> &Space {
         unsafe { self.row_array.get_unchecked(row).get_unchecked(column) }
@@ -242,7 +263,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// Converts (row, column) pairs to their corresponding [`Space`] instances.
     ///
     /// # Panics
-    ///  - If a coordinate pair is out of bounds.
+    ///
+    /// If a coordinate pair is out of bounds.
     fn coords_to_spaces(
         &self,
         coords: impl Iterator<Item = (usize, usize)>,
@@ -292,11 +314,11 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 }
 
 #[cfg(test)]
-mod test_place {
+mod test_placers {
     use super::*;
 
     #[test]
-    fn success() {
+    fn place_success() {
         let mut empty = MnkBoard::<2, 2, 2>::new();
 
         let top_left = empty.place(Player::X, 0, 0);
@@ -341,7 +363,7 @@ mod test_place {
     }
 
     #[test]
-    fn occupied() {
+    fn place_occupied() {
         let mut full = MnkBoard::<2, 2, 2>::from([
             [Space::Stone(Player::X), Space::Stone(Player::O)],
             [Space::Stone(Player::O), Space::Stone(Player::X)],
@@ -381,7 +403,7 @@ mod test_place {
     }
 
     #[test]
-    fn out_of_bounds() {
+    fn place_out_of_bounds() {
         let mut empty = MnkBoard::<2, 2, 2>::new();
 
         let high_row_x = empty.place(Player::X, 2, 0);
@@ -404,6 +426,107 @@ mod test_place {
         assert_eq!(
             high_column_o,
             Err(PlaceError::OutOfBounds { row: 0, column: 2 })
+        );
+    }
+
+    #[test]
+    fn place_unsafe_empty() {
+        let mut empty = MnkBoard::<2, 2, 2>::new();
+
+        unsafe {
+            empty.place_unchecked(Player::X, 0, 0);
+        }
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Empty],
+                [Space::Empty, Space::Empty]
+            ]
+        );
+
+        unsafe {
+            empty.place_unchecked(Player::O, 0, 1);
+        }
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Empty, Space::Empty]
+            ]
+        );
+
+        unsafe {
+            empty.place_unchecked(Player::O, 1, 0);
+        }
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Empty]
+            ]
+        );
+
+        unsafe {
+            empty.place_unchecked(Player::X, 1, 1);
+        }
+        assert_eq!(
+            empty.row_array,
+            [
+                [Space::Stone(Player::X), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Stone(Player::X)]
+            ]
+        );
+    }
+
+    #[test]
+    fn place_unsafe_occupied() {
+        let mut all_x = MnkBoard::<2, 2, 2>::from([
+            [Space::Stone(Player::X), Space::Stone(Player::X)],
+            [Space::Stone(Player::X), Space::Stone(Player::X)],
+        ]);
+
+        unsafe {
+            all_x.place_unchecked(Player::O, 0, 0);
+        }
+        assert_eq!(
+            all_x.row_array,
+            [
+                [Space::Stone(Player::O), Space::Stone(Player::X)],
+                [Space::Stone(Player::X), Space::Stone(Player::X)],
+            ]
+        );
+
+        unsafe {
+            all_x.place_unchecked(Player::O, 0, 1);
+        }
+        assert_eq!(
+            all_x.row_array,
+            [
+                [Space::Stone(Player::O), Space::Stone(Player::O)],
+                [Space::Stone(Player::X), Space::Stone(Player::X)],
+            ]
+        );
+
+        unsafe {
+            all_x.place_unchecked(Player::O, 1, 0);
+        }
+        assert_eq!(
+            all_x.row_array,
+            [
+                [Space::Stone(Player::O), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Stone(Player::X)],
+            ]
+        );
+
+        unsafe {
+            all_x.place_unchecked(Player::O, 1, 1);
+        }
+        assert_eq!(
+            all_x.row_array,
+            [
+                [Space::Stone(Player::O), Space::Stone(Player::O)],
+                [Space::Stone(Player::O), Space::Stone(Player::O)],
+            ]
         );
     }
 }
