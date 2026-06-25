@@ -17,6 +17,8 @@ jobs:
       RUSTFLAGS: "-D warnings"
     steps:
     - uses: actions/checkout@v4
+    - name: rustfmt
+      run: cargo fmt
     - name: Clippy
       run: cargo clippy
   build:
@@ -27,3 +29,9 @@ jobs:
       run: cargo build
     - name: Run tests
       run: cargo test
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Doc
+      run: cargo doc
