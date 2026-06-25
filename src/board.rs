@@ -1331,3 +1331,112 @@ impl<const R: usize, const C: usize, const K: usize> From<MnkBoard<R, C, K>> for
         game.row_array
     }
 }
+
+impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkBoard<R, C, K> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let border = "+-".repeat(C) + "+";
+        let vertical_sep = "\n".to_owned() + &border + "\n";
+        let middle_rows = self
+            .row_array
+            .map(|row| format!("|{}|", row.map(|square| square.to_string()).join("|")))
+            .join(&vertical_sep);
+        write!(f, "{border}\n{middle_rows}\n{border}")
+    }
+}
+
+#[cfg(test)]
+mod test_mnk_board_display {
+    use super::*;
+
+    #[test]
+    fn squares() {
+        let one = MnkBoard::<1, 1, 1>::from([[Space::Stone(Player::X)]]);
+        assert_eq!(
+            one.to_string(),
+            "+-+\n\
+             |X|\n\
+             +-+"
+        );
+
+        let two = MnkBoard::<2, 2, 2>::from([
+            [Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Stone(Player::O)],
+        ]);
+        assert_eq!(
+            two.to_string(),
+            "+-+-+\n\
+             |X| |\n\
+             +-+-+\n\
+             | |O|\n\
+             +-+-+"
+        );
+
+        let three = MnkBoard::<3, 3, 3>::from([
+            [
+                Space::Stone(Player::X),
+                Space::Empty,
+                Space::Stone(Player::O),
+            ],
+            [
+                Space::Stone(Player::O),
+                Space::Stone(Player::X),
+                Space::Empty,
+            ],
+            [
+                Space::Stone(Player::X),
+                Space::Stone(Player::O),
+                Space::Empty,
+            ],
+        ]);
+        assert_eq!(
+            three.to_string(),
+            "+-+-+-+\n\
+             |X| |O|\n\
+             +-+-+-+\n\
+             |O|X| |\n\
+             +-+-+-+\n\
+             |X|O| |\n\
+             +-+-+-+"
+        );
+    }
+
+    #[test]
+    fn rectangles() {
+        let tall = MnkBoard::<3, 2, 2>::from([
+            [Space::Stone(Player::X), Space::Empty],
+            [Space::Empty, Space::Stone(Player::O)],
+            [Space::Stone(Player::X), Space::Stone(Player::O)],
+        ]);
+        assert_eq!(
+            tall.to_string(),
+            "+-+-+\n\
+             |X| |\n\
+             +-+-+\n\
+             | |O|\n\
+             +-+-+\n\
+             |X|O|\n\
+             +-+-+"
+        );
+
+        let wide = MnkBoard::<2, 3, 2>::from([
+            [
+                Space::Stone(Player::X),
+                Space::Empty,
+                Space::Stone(Player::X),
+            ],
+            [
+                Space::Empty,
+                Space::Stone(Player::O),
+                Space::Stone(Player::O),
+            ],
+        ]);
+        assert_eq!(
+            wide.to_string(),
+            "+-+-+-+\n\
+             |X| |X|\n\
+             +-+-+-+\n\
+             | |O|O|\n\
+             +-+-+-+"
+        );
+    }
+}
