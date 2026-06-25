@@ -296,7 +296,7 @@ mod test_place {
     use super::*;
 
     #[test]
-    fn test_success() {
+    fn success() {
         let mut empty = MnkBoard::<2, 2, 2>::new();
 
         let top_left = empty.place(Player::X, 0, 0);
@@ -341,7 +341,7 @@ mod test_place {
     }
 
     #[test]
-    fn test_occupied() {
+    fn occupied() {
         let mut full = MnkBoard::<2, 2, 2>::from([
             [Space::Stone(Player::X), Space::Stone(Player::O)],
             [Space::Stone(Player::O), Space::Stone(Player::X)],
@@ -381,7 +381,7 @@ mod test_place {
     }
 
     #[test]
-    fn test_out_of_bounds() {
+    fn out_of_bounds() {
         let mut empty = MnkBoard::<2, 2, 2>::new();
 
         let high_row_x = empty.place(Player::X, 2, 0);
@@ -463,7 +463,7 @@ mod test_winner {
     use super::*;
 
     #[test]
-    fn test_draws() {
+    fn draws() {
         let empty_0x0 = MnkBoard::<0, 0, 1>::new();
         assert!(empty_0x0.winner().is_none());
 
@@ -491,7 +491,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_row_win() {
+    fn row_win() {
         let row_win = MnkBoard::<3, 3, 3>::from([
             [
                 Space::Stone(Player::X),
@@ -505,7 +505,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_column_win() {
+    fn column_win() {
         let column_win = MnkBoard::<3, 3, 3>::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
@@ -515,7 +515,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_top_right_win() {
+    fn top_right_win() {
         let top_right_win = MnkBoard::<3, 3, 2>::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
@@ -525,7 +525,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_left_down_win() {
+    fn left_down_win() {
         let left_down_win = MnkBoard::<4, 3, 3>::from([
             [Space::Empty, Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
@@ -536,7 +536,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_top_left_win() {
+    fn top_left_win() {
         let top_left_win = MnkBoard::<3, 3, 2>::from([
             [Space::Empty, Space::Empty, Space::Stone(Player::X)],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
@@ -546,7 +546,7 @@ mod test_winner {
     }
 
     #[test]
-    fn test_right_down_win() {
+    fn right_down_win() {
         let right_down_win = MnkBoard::<4, 3, 3>::from([
             [Space::Empty, Space::Empty, Space::Empty],
             [Space::Empty, Space::Empty, Space::Stone(Player::X)],
@@ -562,7 +562,7 @@ mod test_winner_in_runs {
     use super::*;
 
     #[test]
-    fn test_trivial() {
+    fn trivial() {
         let empty: iter::Empty<iter::Empty<&Space>> = iter::empty();
         assert!(MnkBoard::<0, 0, 1>::winner_in_runs(empty).is_none());
 
@@ -571,7 +571,7 @@ mod test_winner_in_runs {
     }
 
     #[test]
-    fn test_several_runs() {
+    fn several_runs() {
         let delayed = [
             iter::once(&Space::Empty),
             iter::once(&Space::Stone(Player::X)),
@@ -595,7 +595,7 @@ mod test_winner_in_run {
     use super::*;
 
     #[test]
-    fn test_trivial() {
+    fn trivial() {
         let empty: [&Space; 0] = [];
         assert!(MnkBoard::<0, 0, 1>::winner_in_run(empty).is_none());
         assert!(MnkBoard::<0, 0, 2>::winner_in_run(empty).is_none());
@@ -615,7 +615,7 @@ mod test_winner_in_run {
     }
 
     #[test]
-    fn test_single_player() {
+    fn single_player() {
         let right_run = [
             &Space::Empty,
             &Space::Empty,
@@ -654,7 +654,7 @@ mod test_winner_in_run {
     }
 
     #[test]
-    fn test_two_player() {
+    fn two_player() {
         let left_heavy = [
             &Space::Stone(Player::X),
             &Space::Stone(Player::X),
@@ -733,7 +733,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_rows() {
+    fn rows() {
         let board = square_board();
         let rows: Vec<Vec<&Space>> = board.rows().map(Iterator::collect).collect();
         assert_eq!(rows.len(), 5);
@@ -785,7 +785,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_columns() {
+    fn columns() {
         let board = square_board();
         let columns: Vec<Vec<&Space>> = board.columns().map(Iterator::collect).collect();
         assert_eq!(columns.len(), 5);
@@ -837,7 +837,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_top_right() {
+    fn top_right() {
         let board = square_board();
         let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
@@ -868,7 +868,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_left_down() {
+    fn left_down() {
         let board = square_board();
         let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 2);
@@ -890,7 +890,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_top_left() {
+    fn top_left() {
         let board = square_board();
         let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
@@ -920,7 +920,7 @@ mod test_square_board {
     }
 
     #[test]
-    fn test_right_down() {
+    fn right_down() {
         let board = square_board();
         let diags: Vec<Vec<&Space>> = board
             .right_down_diagonals()
@@ -1014,7 +1014,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_tall_top_right_diags() {
+    fn tall_top_right_diags() {
         let board = tall_board();
         let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 2);
@@ -1036,7 +1036,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_tall_left_down_diags() {
+    fn tall_left_down_diags() {
         let board = tall_board();
         let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 2);
@@ -1058,7 +1058,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_tall_top_left_diags() {
+    fn tall_top_left_diags() {
         let board = tall_board();
         let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 2);
@@ -1080,7 +1080,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_tall_right_down_diags() {
+    fn tall_right_down_diags() {
         let board = tall_board();
         let diags: Vec<Vec<&Space>> = board
             .right_down_diagonals()
@@ -1105,7 +1105,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_wide_top_right_diags() {
+    fn wide_top_right_diags() {
         let board = wide_board();
         let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
@@ -1135,7 +1135,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_wide_left_down_diags() {
+    fn wide_left_down_diags() {
         let board = wide_board();
         let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
         let diag = vec![&Space::Stone(Player::X), &Space::Empty, &Space::Empty];
@@ -1143,7 +1143,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_wide_top_left_diags() {
+    fn wide_top_left_diags() {
         let board = wide_board();
         let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
@@ -1173,7 +1173,7 @@ mod test_rectangular_boards {
     }
 
     #[test]
-    fn test_wide_right_up_diags() {
+    fn wide_right_up_diags() {
         let board = wide_board();
         let diags: Vec<Vec<&Space>> = board
             .right_down_diagonals()
