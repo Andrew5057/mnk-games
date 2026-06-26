@@ -2,7 +2,7 @@ use std::error::Error;
 use std::{fmt, iter};
 
 /// One of two players.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Player {
     /// The player who makes the first move.
     X,
@@ -21,7 +21,7 @@ impl fmt::Display for Player {
 }
 
 /// A space that can be played on by a [`Player`].
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Space {
     /// A space that has not been played on yet.
     #[default]
@@ -59,7 +59,7 @@ impl From<Space> for Option<Player> {
 }
 
 /// An error which can occur when trying to place a stone.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum PlaceError {
     /// An error which can occur when the location already contains a [`Space::Stone`].
@@ -108,7 +108,7 @@ impl Error for PlaceError {}
 /// are considered out of bounds.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkBoard<const R: usize, const C: usize, const K: usize> {
     row_array: [[Space; C]; R],
 }
