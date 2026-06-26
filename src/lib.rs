@@ -2,3 +2,6 @@
 
 mod board;
 pub use board::{MnkBoard, PlaceError, Player, Space};
+
+mod games;
+pub use games::MnkGame;
