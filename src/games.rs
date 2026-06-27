@@ -1,5 +1,4 @@
-use crate::board::{MnkBoard, Player};
-use crate::PlaceError;
+use crate::{MnkBoard, PlaceError, Player};
 
 /// Errors which may occur when playing an *m,n,k*-game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
