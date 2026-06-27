@@ -1,4 +1,5 @@
 use crate::{MnkBoard, PlaceError, Player};
+use std::fmt;
 
 /// Errors which may occur when playing an *m,n,k*-game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -213,5 +214,69 @@ mod test_update_status {
 impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R, C, K> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.board)?;
+        let status_line = match self.status {
+            GameStatus::Drawn => "\nDraw",
+            GameStatus::Ongoing => "",
+            GameStatus::Won(player) => &format!("\n{player} wins!"),
+        };
+        write!(f, "{status_line}")
+    }
+}
+
+#[cfg(test)]
+mod test_mnk_game_display {
+    use crate::{GameStatus, MnkGame, Player};
+
+    #[test]
+    fn draw() {
+        let mut draw = MnkGame::<1, 1, 1>::new();
+        draw.status = GameStatus::Drawn;
+        assert_eq!(
+            draw.to_string(),
+            "+-+\n\
+             | |\n\
+             +-+\n\
+             Draw"
+        );
+    }
+
+    #[test]
+    fn ongoing() {
+        let ongoing = MnkGame::<1, 1, 1>::new();
+        assert_eq!(
+            ongoing.to_string(),
+            "+-+\n\
+             | |\n\
+             +-+"
+        );
+    }
+
+    #[test]
+    fn won() {
+        let mut x_won = MnkGame::<1, 1, 1>::new();
+        x_won.status = GameStatus::Won(Player::X);
+        assert_eq!(
+            x_won.to_string(),
+            "+-+\n\
+             | |\n\
+             +-+\n\
+             X wins!"
+        );
+
+        let mut o_won = MnkGame::<1, 1, 1>::new();
+        o_won.status = GameStatus::Won(Player::O);
+        assert_eq!(
+            o_won.to_string(),
+            "+-+\n\
+             | |\n\
+             +-+\n\
+             O wins!"
+        );
     }
 }
