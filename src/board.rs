@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ops::Not;
 use std::{fmt, iter};
 
 /// One of two players.
@@ -16,6 +17,17 @@ impl fmt::Display for Player {
         match *self {
             Self::X => write!(f, "X"),
             Self::O => write!(f, "O"),
+        }
+    }
+}
+
+impl Not for Player {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Self::X => Self::O,
+            Self::O => Self::X,
         }
     }
 }
@@ -120,6 +132,14 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         Self {
             row_array: [[Space::Empty; C]; R],
         }
+    }
+
+    /// Returns `true` if every [`Space`] on the board is a [`Space::Stone`] and `false` otherwise.
+    #[must_use]
+    pub fn full(&self) -> bool {
+        self.row_array
+            .iter()
+            .all(|row| row.iter().all(|space| space != &Space::Empty))
     }
 
     /// Attempts to place a stone on the board.
