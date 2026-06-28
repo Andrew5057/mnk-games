@@ -1,4 +1,5 @@
 use crate::{MnkBoard, PlaceError, Player};
+use std::error::Error;
 use std::fmt;
 
 /// Errors which may occur when playing a move in an *m,n,k*-game.
@@ -10,6 +11,17 @@ pub enum PlayError {
     PlaceError(PlaceError),
 }
 
+impl fmt::Display for PlayError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::GameOver(status) => write!(f, "game already over: {status}"),
+            Self::PlaceError(place_error) => write!(f, "illegal move: {place_error}"),
+        }
+    }
+}
+
+impl Error for PlayError {}
+
 /// The current status of a game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum GameStatus {
@@ -19,6 +31,16 @@ pub enum GameStatus {
     Ongoing,
     /// The game is over and has been won by the indicated [`Player`].
     Won(Player),
+}
+
+impl fmt::Display for GameStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Drawn => write!(f, "draw"),
+            Self::Ongoing => write!(f, "ongoing"),
+            Self::Won(player) => write!(f, "{player} won!"),
+        }
+    }
 }
 
 /// A standard [*m,n,k*-game].
