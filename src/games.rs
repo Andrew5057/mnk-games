@@ -1,12 +1,12 @@
 use crate::{MnkBoard, PlaceError, Player};
 use std::fmt;
 
-/// Errors which may occur when playing an *m,n,k*-game.
+/// Errors which may occur when playing a move in an *m,n,k*-game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PlayError {
-    /// An error which may occur when trying to play a game that is over.
+    /// An error which may occur when the game is already over.
     GameOver(GameStatus),
-    /// An error which may occur when placing a stone illegally.
+    /// An error which may occur when the move is illegal.
     PlaceError(PlaceError),
 }
 
@@ -24,7 +24,10 @@ pub enum GameStatus {
 /// A standard [*m,n,k*-game].
 ///
 /// [`Player::X`] and [`Player::O`] alternate placing stones, in that order, on a board with `R`
-/// rows and `C` columns until one gets `K` stones in a row.
+/// rows and `C` columns until one wins by having `K` stones in a row, column, or diagonal.
+///
+/// Methods are zero-indexed. Rows at least `R` and columns at least `C` are considered out of
+/// bounds.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -35,7 +38,8 @@ pub struct MnkGame<const R: usize, const C: usize, const K: usize> {
 }
 
 impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
-    /// Returns an `MnkGame<R, C, K>` with an empty board and current player [`Player::X`].
+    /// Returns a [`GameStatus::Ongoing`] `MnkGame<R, C, K>` with an empty board and current player
+    /// [`Player::X`].
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -59,8 +63,9 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
 
     /// Attempt to play at a certain square.
     ///
-    /// If successful, plays a [`Space::Stone`] at the indicated location and switches the current
-    /// player. Never places a stone if it also returns an error.
+    /// If successful, plays a stone at the indicated location, switches the current [`Player`],
+    /// and checks whether the [`GameStatus`] has changed. Never plays a stone if it also returns an
+    /// error.
     ///
     /// # Errors
     ///

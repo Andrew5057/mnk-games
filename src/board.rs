@@ -12,7 +12,7 @@ pub enum Player {
 }
 
 impl fmt::Display for Player {
-    /// Writes "X" for [`Player::X`] and "O" for [`Player::O`].
+    /// Writes `"X"` for [`Player::X`] and `"O"` for [`Player::O`].
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::X => write!(f, "X"),
@@ -105,19 +105,15 @@ impl Error for PlaceError {}
 
 /// The board state of an [*m,n,k*-game].
 ///
-/// *M,n,k*-games are two-player games played on an *m*-by-*n* board. Each [`Player`] takes turns
-/// placing a stone in an empty [`Space`] on the board. A player wins when they have placed *k*
-/// consecutive stones across a row, column, or diagonal. The game is drawn if there are no free
-/// spaces and neither player has won.
-///
-/// An `MnkBoard<R, C, K>` struct has `R` rows and `C` columns of spaces. It considers a winner
-/// to be a player with `K` stones in a row. However, the choice of which dimension represents the
-/// number of rows is arbitrary; it is okay for other structs employing an `MnkBoard<R, C, K>` to
-/// reinterpret `R` to be the number of columns and `C` to be the number of rows as long as
-/// user-facing behavior is consistent with this assignment.
+/// An `MnkBoard<R, C, K>` struct has `R` rows and `C` columns of [`Space`]s and considers a winner
+/// to be a [`Player`] with `K` [`Space::Stone`]s in a row.
 ///
 /// Methods for this struct are 0-indexed. Row indices at least `R` and column indices at least `C`
 /// are considered out of bounds.
+///
+/// This struct performs very little input validation. It is intended to be wrapped by other types
+/// that perform more thorough validation based on a particular game's rules, not used in
+/// user-facing code directly.
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -144,8 +140,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Attempts to place a stone on the board.
     ///
-    /// If the [`Space`] at the specified row and column is [`Space::Empty`], replaces it with a
-    /// [`Space::Stone`] corresponding to `player`.
+    /// If and only if the [`Space`] at the specified row and column is [`Space::Empty`], replaces
+    /// it with a [`Space::Stone`] corresponding to `player`.
     ///
     /// # Errors
     ///
@@ -189,7 +185,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Returns the [`Space`] at the specified row and column.
     ///
-    /// Returns [`None`] either index is out of bounds.
+    /// Returns [`None`] if either index is out of bounds.
     #[must_use]
     pub fn get(&self, row: usize, column: usize) -> Option<&Space> {
         self.row_array.get(row).and_then(|row| row.get(column))
@@ -207,10 +203,10 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         unsafe { self.row_array.get_unchecked(row).get_unchecked(column) }
     }
 
-    /// Returns the winner of the game, or [`None`] if neither player has won.
+    /// Returns the winner of the game, or [`None`] if neither [`Player`] has won.
     ///
-    /// It is possible, but ill-advised, for a board to have multiple winners. In such a case, the
-    /// value returned by this is an arbitrary [`Player`] but not `None`.
+    /// It is possible, but ill-advised, for a board to have multiple winners. In such a case,
+    /// returns an arbitrary `Player` but not `None`.
     #[must_use]
     pub fn winner(&self) -> Option<Player> {
         if C >= K {
@@ -253,8 +249,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         winners.find(Option::is_some).flatten()
     }
 
-    /// Returns the first [`Player`] to have `K` consecutive [`Space`] instances in the
-    /// [`Iterator`].
+    /// Returns the first [`Player`] to have `K` consecutive [`Space`]s in the [`Iterator`].
     #[must_use]
     fn winner_in_run<'a>(run: impl IntoIterator<Item = &'a Space>) -> Option<Player> {
         let mut consecutive = 0;
@@ -280,7 +275,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
         None
     }
 
-    /// Converts (row, column) pairs to their corresponding [`Space`] instances.
+    /// Converts (row, column) pairs to their corresponding [`Space`]s.
     ///
     /// # Panics
     ///
@@ -311,7 +306,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Returns an [`Iterator`] over diagonals that start on the left and move down.
     ///
-    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`.
+    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`. (This
+    /// avoids overlap with [`MnkBoard::top_right_diagonals`].)
     fn left_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
         (1..=(R - K)).map(move |top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)))
     }
@@ -326,7 +322,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
 
     /// Returns an [`Iterator`] over the diagonals that start on the right and move down.
     ///
-    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`.
+    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`. (This
+    /// avoids overlap with [`MnkBoard::top_left_diagonals`].)
     fn right_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
         (1..=(R - K))
             .map(move |last_row| self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
