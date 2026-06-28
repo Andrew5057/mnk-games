@@ -4,6 +4,7 @@ use std::fmt;
 
 /// Errors which may occur when playing a move in an *m,n,k*-game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub enum PlayError {
     /// An error which may occur when the game is already over.
     GameOver(GameStatus),
