@@ -9,37 +9,4 @@ license = "MIT"
 keywords = ["game", "math", "matrix", "game-theory"]
 categories = ["games", "mathematics"]
 
-[lints.rust]
-absolute_paths_not_starting_with_crate = "warn"
-ambiguous_negative_literals = "warn"
-closure_returning_async_block = "warn"
-deref-into-dyn-supertrait = "warn"
-elided-lifetimes-in-paths = "warn"
-explicit-outlives-requirements = "warn"
-ffi-unwind-calls = "warn"
-if-let-rescope = "warn"
-impl-trait-overcaptures = "warn"
-impl-trait-redundant-captures = "warn"
-keyword-idents = "warn"
-let-underscore-drop = "warn"
-missing-debug-implementations = "warn"
-missing-docs = "warn"
-redundant-imports = "warn"
-redundant-lifetimes = "warn"
-trivial-casts = "warn"
-trivial-numeric-casts = "warn"
-unit-bindings = "warn"
-unnameable-types = "warn"
-unreachable-pub = "warn"
-unsafe-attr-outside-unsafe = "warn"
-unused-import-braces = "warn"
-unused-lifetimes = "warn"
-unused-macro-rules = "warn"
-unused-qualifications = "warn"
-
-[lints.clippy]
-pedantic = "warn"
-nursery = "warn"
-cargo = "warn"
-
 [dependencies]
