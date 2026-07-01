@@ -249,11 +249,11 @@ impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R,
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.board)?;
         let status_line = match self.status {
-            GameStatus::Drawn => "\nDraw",
-            GameStatus::Ongoing => "",
-            GameStatus::Won(player) => &format!("\n{player} wins!"),
+            GameStatus::Drawn => "Draw",
+            GameStatus::Ongoing => &format!("Next move: {}", self.current_player),
+            GameStatus::Won(player) => &format!("{player} wins!"),
         };
-        write!(f, "{status_line}")
+        write!(f, "\n{status_line}")
     }
 }
 
@@ -276,12 +276,23 @@ mod test_mnk_game_display {
 
     #[test]
     fn ongoing() {
-        let ongoing = MnkGame::<1, 1, 1>::new();
+        let x_next = MnkGame::<1, 1, 1>::new();
         assert_eq!(
-            ongoing.to_string(),
+            x_next.to_string(),
             "+-+\n\
              | |\n\
-             +-+"
+             +-+\n\
+             Next move: X"
+        );
+
+        let mut o_next = MnkGame::<1, 1, 1>::new();
+        o_next.current_player = Player::O;
+        assert_eq!(
+            o_next.to_string(),
+            "+-+\n\
+             | |\n\
+             +-+\n\
+             Next move: O"
         );
     }
 
