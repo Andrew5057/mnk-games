@@ -65,7 +65,7 @@ fn play<const R: usize, const C: usize, const K: usize>(
 ) -> Result<(), Error> {
     let mut game = game_builder();
 
-    while game.status() == GameStatus::Ongoing {
+    while let GameStatus::Ongoing { next: _ } = game.status() {
         println!("{game}");
         request_move(&mut game)?;
         println!();

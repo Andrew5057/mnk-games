@@ -28,8 +28,8 @@ impl Error for PlayError {}
 pub enum GameStatus {
     /// The game is over and is a draw.
     Drawn,
-    /// The game is not over.
-    Ongoing,
+    /// The game is not over; the indicated [`Player`] will play next.
+    Ongoing { next: Player },
     /// The game is over and has been won by the indicated [`Player`].
     Won(Player),
 }
@@ -37,8 +37,8 @@ pub enum GameStatus {
 impl fmt::Display for GameStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Drawn => write!(f, "draw"),
-            Self::Ongoing => write!(f, "ongoing"),
+            Self::Drawn => write!(f, "Draw"),
+            Self::Ongoing { next } => write!(f, "Next: {next}"),
             Self::Won(player) => write!(f, "{player} won!"),
         }
     }
@@ -56,7 +56,6 @@ impl fmt::Display for GameStatus {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkGame<const R: usize, const C: usize, const K: usize> {
     board: MnkBoard<R, C, K>,
-    current_player: Player,
     status: GameStatus,
 }
 
@@ -67,15 +66,8 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
     pub const fn new() -> Self {
         Self {
             board: MnkBoard::<R, C, K>::new(),
-            current_player: Player::X,
-            status: GameStatus::Ongoing,
+            status: GameStatus::Ongoing { next: Player::X },
         }
-    }
-
-    /// The [`Player`] who will take the next turn.
-    #[must_use]
-    pub const fn current_player(&self) -> Player {
-        self.current_player
     }
 
     /// The current [`GameStatus`] of the game.
@@ -97,17 +89,14 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
     pub fn play_at(&mut self, row: usize, column: usize) -> Result<(), PlayError> {
         match self.status {
             GameStatus::Drawn | GameStatus::Won(_) => Err(PlayError::GameOver(self.status)),
-            GameStatus::Ongoing => self
-                .board
-                .place(self.current_player, row, column)
-                .map_or_else(
-                    |err| Err(PlayError::PlaceError(err)),
-                    |()| {
-                        self.current_player = !self.current_player;
-                        self.update_status();
-                        Ok(())
-                    },
-                ),
+            GameStatus::Ongoing { next } => self.board.place(next, row, column).map_or_else(
+                |err| Err(PlayError::PlaceError(err)),
+                |()| {
+                    self.status = GameStatus::Ongoing { next: !next };
+                    self.update_status();
+                    Ok(())
+                },
+            ),
         }
     }
 
@@ -121,7 +110,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
                 if self.board.full() {
                     GameStatus::Drawn
                 } else {
-                    GameStatus::Ongoing
+                    self.status // To retain the wrapped Player
                 }
             },
             GameStatus::Won,
@@ -174,27 +163,27 @@ mod test_play_at {
     }
 
     #[test]
-    fn depends_on_current_player() {
+    fn depends_on_next_player() {
         let mut x_plays = MnkGame::<1, 1, 1>::new();
         assert_eq!(x_plays.play_at(0, 0), Ok(()));
         assert_eq!(x_plays.board.get(0, 0), Some(&Space::Stone(Player::X)));
 
         let mut o_plays = MnkGame::<1, 1, 1>::new();
-        o_plays.current_player = Player::O;
+        o_plays.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(o_plays.play_at(0, 0), Ok(()));
         assert_eq!(o_plays.board.get(0, 0), Some(&Space::Stone(Player::O)));
     }
 
     #[test]
-    fn swaps_current_player() {
-        let mut x_plays = MnkGame::<1, 1, 1>::new();
+    fn swaps_next_player() {
+        let mut x_plays = MnkGame::<2, 2, 2>::new();
         assert_eq!(x_plays.play_at(0, 0), Ok(()));
-        assert_eq!(x_plays.current_player, Player::O);
+        assert_eq!(x_plays.status, GameStatus::Ongoing { next: Player::O });
 
-        let mut o_plays = MnkGame::<1, 1, 1>::new();
-        o_plays.current_player = Player::O;
+        let mut o_plays = MnkGame::<2, 2, 2>::new();
+        o_plays.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(o_plays.play_at(0, 0), Ok(()));
-        assert_eq!(o_plays.current_player, Player::X);
+        assert_eq!(o_plays.status, GameStatus::Ongoing { next: Player::X });
     }
 
     #[test]
@@ -235,7 +224,7 @@ mod test_update_status {
     fn detects_ongoing() {
         let mut ongoing = MnkGame::<1, 1, 1>::new();
         ongoing.update_status();
-        assert_eq!(ongoing.status, GameStatus::Ongoing);
+        assert_eq!(ongoing.status, GameStatus::Ongoing { next: Player::X });
     }
 }
 
@@ -247,13 +236,7 @@ impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K
 
 impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R, C, K> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.board)?;
-        let status_line = match self.status {
-            GameStatus::Drawn => "Draw",
-            GameStatus::Ongoing => &format!("Next move: {}", self.current_player),
-            GameStatus::Won(player) => &format!("{player} wins!"),
-        };
-        write!(f, "\n{status_line}")
+        write!(f, "{}\n{}", self.board, self.status)
     }
 }
 
@@ -282,17 +265,17 @@ mod test_mnk_game_display {
             "+-+\n\
              | |\n\
              +-+\n\
-             Next move: X"
+             Next: X"
         );
 
         let mut o_next = MnkGame::<1, 1, 1>::new();
-        o_next.current_player = Player::O;
+        o_next.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(
             o_next.to_string(),
             "+-+\n\
              | |\n\
              +-+\n\
-             Next move: O"
+             Next: O"
         );
     }
 
@@ -305,7 +288,7 @@ mod test_mnk_game_display {
             "+-+\n\
              | |\n\
              +-+\n\
-             X wins!"
+             X won!"
         );
 
         let mut o_won = MnkGame::<1, 1, 1>::new();
@@ -315,7 +298,7 @@ mod test_mnk_game_display {
             "+-+\n\
              | |\n\
              +-+\n\
-             O wins!"
+             O won!"
         );
     }
 }
