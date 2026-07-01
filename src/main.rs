@@ -16,7 +16,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ArgumentCount { expected, actual } => {
-                write!(f, "expected {expected} arguments, not {actual}")
+                write!(f, "expected {expected} argument(s), not {actual}")
             }
             Self::IllegalArgument { expected, actual } => {
                 write!(f, "expected {expected}, not {actual}")
@@ -39,7 +39,6 @@ fn try_main() -> Result<(), Error> {
     let args: Vec<String> = args().collect();
 
     match args.len() {
-        1 => play(TicTacToe::new),
         2 => match args[1].as_str() {
             "tic-tac-toe" => play(TicTacToe::new),
             "gomoku" => play(Gomoku::new),
@@ -49,7 +48,7 @@ fn try_main() -> Result<(), Error> {
             }),
         },
         n => Err(Error::ArgumentCount {
-            expected: "0 or 1".to_string(),
+            expected: "1".to_string(),
             actual: n - 1,
         }),
     }
