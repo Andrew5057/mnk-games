@@ -5,11 +5,17 @@
 Provides programmatic support for [*m,n,k*-games][*m,n,k*-game], in which two players compete to get *k* stones in a row
 on an *m*-by-*n* board.
 
-This project currently includes representations of boards and standard *m,n,k*-games. Goals include:
+This project currently includes representations of boards and standard *m,n,k*-games, as well as a CLI
+for tic-tac-toe and gomoku. Goals include:
 
-- Fully-fledged command-line and graphical interfaces for playing games.
+- GUIs for playing games.
 - Variants like [Connect Four].
 - Tools for solving *m,n,k*-games.
+
+## CLI
+
+The command line tool takes one argument, which must be either `tic-tac-toe` or `gomoku`. This will start a round of the
+chosen game. Player play by entering a space-separated, zero-indexed row and column.
 
 [Rust badge]: https://github.com/Andrew5057/mnk-games/actions/workflows/rust.yml/badge.svg
 
