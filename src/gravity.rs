@@ -1,4 +1,4 @@
-use crate::{GameStatus, MnkGame};
+use crate::{GameStatus, MnkBoard, MnkGame};
 use std::fmt;
 
 /// A restricted [`MnkGame`] where stones must be placed at the bottom of a column.
@@ -9,8 +9,14 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
     /// Returns a [`GameStatus::Ongoing`] `GravityGame<R, C, K>` with an empty board and current
     /// player [`Player::X`].
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(MnkGame::new())
+    }
+
+    /// The current state of the game's [`MnkBoard`].
+    #[must_use]
+    pub const fn board(&self) -> &MnkBoard<R, C, K> {
+        self.0.board()
     }
 
     /// The current [`GameStatus`] of the game.

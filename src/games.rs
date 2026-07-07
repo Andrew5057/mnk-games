@@ -79,8 +79,9 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
         }
     }
 
+    /// The current state of the game's [`MnkBoard`].
     #[must_use]
-    pub fn board(&self) -> &MnkBoard<R, C, K> {
+    pub const fn board(&self) -> &MnkBoard<R, C, K> {
         &self.board
     }
 
