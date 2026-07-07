@@ -3,20 +3,26 @@ use std::error::Error;
 use std::fmt;
 
 /// Errors which may occur when playing a move in an *m,n,k*-game.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum PlayError {
     /// An error which may occur when the game is already over.
     GameOver(GameStatus),
-    /// An error which may occur when the move is illegal.
+    /// An error which may occur when a stone cannot be placed at the indicated position.
     PlaceError(PlaceError),
+    /// An error which may occur when a move is against a game's rules.
+    RuleError {
+        /// An informative message about the violated rule.
+        message: String,
+    },
 }
 
 impl fmt::Display for PlayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::GameOver(status) => write!(f, "game already over: {status}"),
-            Self::PlaceError(place_error) => write!(f, "illegal move: {place_error}"),
+            Self::PlaceError(place_error) => write!(f, "impossible move: {place_error}"),
+            Self::RuleError { message } => write!(f, "illegal move: {message}"),
         }
     }
 }
