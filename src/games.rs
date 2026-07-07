@@ -90,7 +90,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
         self.status
     }
 
-    /// Attempt to play at a certain square.
+    /// Attempts to play at the indicated location.
     ///
     /// If successful, plays a stone at the indicated location, switches the current [`Player`],
     /// and checks whether the [`GameStatus`] has changed. Never plays a stone if it also returns an
