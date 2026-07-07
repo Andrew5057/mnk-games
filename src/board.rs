@@ -330,6 +330,39 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 }
 
+impl<const R: usize, const C: usize, const K: usize> Default for MnkBoard<R, C, K> {
+    /// Returns a board filled with [`Space::Empty`].
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> From<[[Space; C]; R]> for MnkBoard<R, C, K> {
+    /// Converts a row-major array into an `MnkBoard`.
+    fn from(rows: [[Space; C]; R]) -> Self {
+        Self { row_array: rows }
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> From<MnkBoard<R, C, K>> for [[Space; C]; R] {
+    /// Converts an `MnkBoard` into a row-major array.
+    fn from(game: MnkBoard<R, C, K>) -> Self {
+        game.row_array
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkBoard<R, C, K> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let border = "+-".repeat(C) + "+";
+        let vertical_sep = "\n".to_owned() + &border + "\n";
+        let middle_rows = self
+            .row_array
+            .map(|row| format!("|{}|", row.map(|square| square.to_string()).join("|")))
+            .join(&vertical_sep);
+        write!(f, "{border}\n{middle_rows}\n{border}")
+    }
+}
+
 #[cfg(test)]
 mod test_placers {
     use super::*;
@@ -1325,39 +1358,6 @@ mod test_rectangular_boards {
             &Space::Empty,
         ];
         assert_eq!(diags, [diag]);
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> Default for MnkBoard<R, C, K> {
-    /// Returns a board filled with [`Space::Empty`].
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> From<[[Space; C]; R]> for MnkBoard<R, C, K> {
-    /// Converts a row-major array into an `MnkBoard`.
-    fn from(rows: [[Space; C]; R]) -> Self {
-        Self { row_array: rows }
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> From<MnkBoard<R, C, K>> for [[Space; C]; R] {
-    /// Converts an `MnkBoard` into a row-major array.
-    fn from(game: MnkBoard<R, C, K>) -> Self {
-        game.row_array
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkBoard<R, C, K> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let border = "+-".repeat(C) + "+";
-        let vertical_sep = "\n".to_owned() + &border + "\n";
-        let middle_rows = self
-            .row_array
-            .map(|row| format!("|{}|", row.map(|square| square.to_string()).join("|")))
-            .join(&vertical_sep);
-        write!(f, "{border}\n{middle_rows}\n{border}")
     }
 }
 

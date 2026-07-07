@@ -133,6 +133,18 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
     }
 }
 
+impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R, C, K> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}\n{}", self.board, self.status)
+    }
+}
+
 #[cfg(test)]
 mod test_play_at {
     use super::*;
@@ -240,18 +252,6 @@ mod test_update_status {
         let mut ongoing = MnkGame::<1, 1, 1>::new();
         ongoing.update_status();
         assert_eq!(ongoing.status, GameStatus::Ongoing { next: Player::X });
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R, C, K> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{}\n{}", self.board, self.status)
     }
 }
 
