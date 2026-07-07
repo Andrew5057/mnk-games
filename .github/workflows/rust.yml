@@ -18,7 +18,7 @@ jobs:
       - name: rustfmt
         run: cargo fmt --check
       - name: Clippy
-        run: cargo clippy -- -Dclippy::all -Dclippy::pedantic
+        run: cargo clippy -- -Dclippy::all -Dclippy::pedantic -Dclippy::cargo
   build:
     runs-on: ubuntu-latest
     steps:
