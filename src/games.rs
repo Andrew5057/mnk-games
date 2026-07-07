@@ -28,8 +28,11 @@ impl Error for PlayError {}
 pub enum GameStatus {
     /// The game is over and is a draw.
     Drawn,
-    /// The game is not over; the indicated [`Player`] will play next.
-    Ongoing { next: Player },
+    /// The game is not over.
+    Ongoing {
+        /// The [`Player`] who will play the next move.
+        next: Player,
+    },
     /// The game is over and has been won by the indicated [`Player`].
     Won(Player),
 }
