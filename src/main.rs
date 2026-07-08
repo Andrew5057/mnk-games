@@ -1,4 +1,5 @@
-use mnk_games::variants::{Gomoku, TicTacToe};
+use mnk_games::gravity::GravityGame;
+use mnk_games::variants::{ConnectFour, Gomoku, TicTacToe};
 use mnk_games::{GameStatus, MnkGame};
 use std::env::args;
 use std::fmt::Display;
@@ -42,8 +43,9 @@ fn try_main() -> Result<(), Error> {
         2 => match args[1].as_str() {
             "tic-tac-toe" => play(TicTacToe::new),
             "gomoku" => play(Gomoku::new),
+            "connect-four" => play_gravity(ConnectFour::new),
             argument => Err(Error::IllegalArgument {
-                expected: "tic-tac-toe or gomoku".to_string(),
+                expected: "tic-tac-toe, gomoku, or connect-four".to_string(),
                 actual: argument.to_string(),
             }),
         },
@@ -89,16 +91,65 @@ fn request_move<const R: usize, const C: usize, const K: usize>(
         if let Err(error) = io::stdin().read_line(&mut input) {
             return Err(Error::Io(error));
         }
+
         let coords: Vec<Result<usize, _>> = input.trim().split(' ').map(str::parse).collect();
         match coords[..] {
-            [Ok(row), Ok(column)] => match game.play_at(row, column) {
-                Ok(()) => {
+            [Ok(row), Ok(column)] => {
+                if let Ok(()) = game.play_at(row, column) {
                     return Ok(());
+                } else {
+                    println!("Illegal move");
                 }
-                Err(_) => println!("Illegal move"),
-            },
+            }
             [_, _] => println!("Must enter non-negative integers"),
             _ => println!("Must enter 2 coordinates"),
+        }
+    }
+}
+
+/// Like [`play`], but with gravity.
+///
+/// # Errors
+///
+/// Same semantics as [`play`].
+fn play_gravity<const R: usize, const C: usize, const K: usize>(
+    game_builder: impl FnOnce() -> GravityGame<R, C, K>,
+) -> Result<(), Error> {
+    let mut game = game_builder();
+
+    while let GameStatus::Ongoing { next: _ } = game.status() {
+        println!("{game}");
+        request_gravity_move(&mut game)?;
+        println!();
+    }
+    println!("{game}");
+    Ok(())
+}
+
+/// Like [`request_move`], but with gravity.
+///
+/// # Errors
+///
+/// Same semantics as [`request_move`].
+fn request_gravity_move<const R: usize, const C: usize, const K: usize>(
+    game: &mut GravityGame<R, C, K>,
+) -> Result<(), Error> {
+    println!("Your move:");
+    loop {
+        let mut input = String::new();
+        if let Err(error) = io::stdin().read_line(&mut input) {
+            return Err(Error::Io(error));
+        }
+
+        let parsed_input: Result<usize, _> = input.trim().parse();
+        if let Ok(column) = parsed_input {
+            if let Ok(()) = game.play_in(column) {
+                return Ok(());
+            } else {
+                println!("Illegal move");
+            }
+        } else {
+            println!("Must enter a non-negative integer column");
         }
     }
 }
