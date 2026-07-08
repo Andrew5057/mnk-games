@@ -1,4 +1,4 @@
-use crate::{gravity::GravityGame, MnkGame};
+use crate::{MnkGame, gravity::GravityGame};
 
 /// The 3,3,3-game, or [tic-tac-toe].
 ///

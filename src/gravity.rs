@@ -9,7 +9,7 @@ pub struct GravityGame<const R: usize, const C: usize, const K: usize>(MnkGame<R
 
 impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
     /// Returns a [`GameStatus::Ongoing`] `GravityGame<R, C, K>` with an empty board and current
-    /// player [`Player::X`].
+    /// player X.
     #[must_use]
     pub const fn new() -> Self {
         Self(MnkGame::new())
