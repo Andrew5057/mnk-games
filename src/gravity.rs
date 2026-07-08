@@ -73,6 +73,22 @@ impl<const R: usize, const C: usize, const K: usize> Default for GravityGame<R, 
     }
 }
 
+impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>>
+    for MnkBoard<R, C, K>
+{
+    fn from(game: GravityGame<R, C, K>) -> Self {
+        game.0.into()
+    }
+}
+
+impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>>
+    for MnkGame<R, C, K>
+{
+    fn from(game: GravityGame<R, C, K>) -> Self {
+        game.0
+    }
+}
+
 impl<const R: usize, const C: usize, const K: usize> fmt::Display for GravityGame<R, C, K> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

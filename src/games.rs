@@ -139,6 +139,12 @@ impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K
     }
 }
 
+impl<const R: usize, const C: usize, const K: usize> From<MnkGame<R, C, K>> for MnkBoard<R, C, K> {
+    fn from(game: MnkGame<R, C, K>) -> Self {
+        game.board
+    }
+}
+
 impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkGame<R, C, K> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}\n{}", self.board, self.status)
