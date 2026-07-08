@@ -1,3 +1,5 @@
+//! [`MnkGame`]s with gravity, which restricts vertical stone placement.
+
 use crate::{GameStatus, MnkBoard, MnkGame, PlaceError, PlayError, Space};
 use std::fmt;
 
