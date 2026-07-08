@@ -97,9 +97,8 @@ fn request_move<const R: usize, const C: usize, const K: usize>(
             [Ok(row), Ok(column)] => {
                 if let Ok(()) = game.play_at(row, column) {
                     return Ok(());
-                } else {
-                    println!("Illegal move");
                 }
+                println!("Illegal move");
             }
             [_, _] => println!("Must enter non-negative integers"),
             _ => println!("Must enter 2 coordinates"),
@@ -145,9 +144,8 @@ fn request_gravity_move<const R: usize, const C: usize, const K: usize>(
         if let Ok(column) = parsed_input {
             if let Ok(()) = game.play_in(column) {
                 return Ok(());
-            } else {
-                println!("Illegal move");
             }
+            println!("Illegal move");
         } else {
             println!("Must enter a non-negative integer column");
         }
