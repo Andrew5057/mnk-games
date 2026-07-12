@@ -174,7 +174,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
 
     /// Returns the winner of the game, or [`None`] if neither [`Player`] has won.
     #[must_use]
-    pub fn winner(&self) -> Option<Player> {
+    fn winner(&self) -> Option<Player> {
         if C >= K {
             let winner = winner_in_runs(self.board.rows(), K);
             if winner.is_some() {
