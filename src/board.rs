@@ -103,10 +103,7 @@ impl fmt::Display for PlaceError {
 
 impl Error for PlaceError {}
 
-/// The board state of an [*m,n,k*-game].
-///
-/// An `MnkBoard<R, C, K>` struct has `R` rows and `C` columns of [`Space`]s and considers a winner
-/// to be a [`Player`] with `K` [`Space::Stone`]s in a row.
+/// A game board with `R` rows and `C` columns of [`Space`]s.
 ///
 /// Methods for this struct are 0-indexed. Row indices at least `R` and column indices at least `C`
 /// are considered out of bounds.
@@ -114,8 +111,6 @@ impl Error for PlaceError {}
 /// This struct performs very little input validation. It is intended to be wrapped by other types
 /// that perform more thorough validation based on a particular game's rules, not used in
 /// user-facing code directly.
-///
-/// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkBoard<const R: usize, const C: usize> {
     row_array: [[Space; C]; R],

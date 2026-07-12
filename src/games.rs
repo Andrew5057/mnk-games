@@ -2,7 +2,7 @@ use crate::{MnkBoard, PlaceError, Player, Space};
 use std::error::Error;
 use std::fmt;
 
-/// Errors which may occur when playing a move in an *m,n,k*-game.
+/// Errors which may occur when playing a move.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum PlayError {
