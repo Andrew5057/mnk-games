@@ -17,7 +17,7 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
 
     /// The current state of the game's [`MnkBoard`].
     #[must_use]
-    pub const fn board(&self) -> &MnkBoard<R, C, K> {
+    pub const fn board(&self) -> &MnkBoard<R, C> {
         self.0.board()
     }
 
@@ -44,8 +44,8 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
 }
 
 /// Find the physically lowest (numerically greatest) row index corresponding to a [`Space::Empty`].
-fn lowest_row_in<const R: usize, const C: usize, const K: usize>(
-    board: &MnkBoard<R, C, K>,
+fn lowest_row_in<const R: usize, const C: usize>(
+    board: &MnkBoard<R, C>,
     column: usize,
 ) -> Result<usize, PlayError> {
     if column >= C {
@@ -73,9 +73,7 @@ impl<const R: usize, const C: usize, const K: usize> Default for GravityGame<R, 
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>>
-    for MnkBoard<R, C, K>
-{
+impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>> for MnkBoard<R, C> {
     fn from(game: GravityGame<R, C, K>) -> Self {
         game.0.into()
     }
@@ -103,30 +101,30 @@ mod test_lowest_row_in {
 
     #[test]
     fn empty_yields_r_minus_one() {
-        let one_one: MnkBoard<1, 1, 1> = MnkBoard::new();
+        let one_one: MnkBoard<1, 1> = MnkBoard::new();
         assert_eq!(lowest_row_in(&one_one, 0), Ok(0));
 
-        let two_one: MnkBoard<2, 1, 1> = MnkBoard::new();
+        let two_one: MnkBoard<2, 1> = MnkBoard::new();
         assert_eq!(lowest_row_in(&two_one, 0), Ok(1));
 
-        let two_two: MnkBoard<2, 2, 1> = MnkBoard::new();
+        let two_two: MnkBoard<2, 2> = MnkBoard::new();
         assert_eq!(lowest_row_in(&two_two, 1), Ok(1));
     }
 
     #[test]
     fn non_empty_yields_lowest() {
-        let mut two_one: MnkBoard<2, 1, 1> = MnkBoard::new();
+        let mut two_one: MnkBoard<2, 1> = MnkBoard::new();
         _ = two_one.place(Player::X, 1, 0);
         assert_eq!(lowest_row_in(&two_one, 0), Ok(0));
 
-        let mut two_two: MnkBoard<2, 2, 1> = MnkBoard::new();
+        let mut two_two: MnkBoard<2, 2> = MnkBoard::new();
         _ = two_two.place(Player::X, 1, 1);
         assert_eq!(lowest_row_in(&two_two, 1), Ok(0));
     }
 
     #[test]
     fn out_of_bounds_fails() {
-        let one_one: MnkBoard<1, 1, 1> = MnkBoard::new();
+        let one_one: MnkBoard<1, 1> = MnkBoard::new();
         assert_matches!(
             lowest_row_in(&one_one, 1),
             Err(PlayError::PlaceError(PlaceError::OutOfBounds {
@@ -138,7 +136,7 @@ mod test_lowest_row_in {
 
     #[test]
     fn full_column_fails() {
-        let mut one_one: MnkBoard<1, 1, 1> = MnkBoard::new();
+        let mut one_one: MnkBoard<1, 1> = MnkBoard::new();
         _ = one_one.place(Player::X, 0, 0);
         assert_matches!(
             lowest_row_in(&one_one, 0),

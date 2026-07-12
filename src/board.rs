@@ -117,11 +117,11 @@ impl Error for PlaceError {}
 ///
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct MnkBoard<const R: usize, const C: usize, const K: usize> {
+pub struct MnkBoard<const R: usize, const C: usize> {
     row_array: [[Space; C]; R],
 }
 
-impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
+impl<const R: usize, const C: usize> MnkBoard<R, C> {
     /// Returns a board filled with [`Space::Empty`].
     #[must_use]
     pub const fn new() -> Self {
@@ -272,28 +272,28 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> Default for MnkBoard<R, C, K> {
+impl<const R: usize, const C: usize> Default for MnkBoard<R, C> {
     /// Returns a board filled with [`Space::Empty`].
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> From<[[Space; C]; R]> for MnkBoard<R, C, K> {
+impl<const R: usize, const C: usize> From<[[Space; C]; R]> for MnkBoard<R, C> {
     /// Converts a row-major array into an `MnkBoard`.
     fn from(rows: [[Space; C]; R]) -> Self {
         Self { row_array: rows }
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> From<MnkBoard<R, C, K>> for [[Space; C]; R] {
+impl<const R: usize, const C: usize> From<MnkBoard<R, C>> for [[Space; C]; R] {
     /// Converts an `MnkBoard` into a row-major array.
-    fn from(game: MnkBoard<R, C, K>) -> Self {
+    fn from(game: MnkBoard<R, C>) -> Self {
         game.row_array
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> fmt::Display for MnkBoard<R, C, K> {
+impl<const R: usize, const C: usize> fmt::Display for MnkBoard<R, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let border = "+-".repeat(C) + "+";
         let vertical_sep = "\n".to_owned() + &border + "\n";
@@ -311,7 +311,7 @@ mod test_placers {
 
     #[test]
     fn place_success() {
-        let mut empty = MnkBoard::<2, 2, 2>::new();
+        let mut empty = MnkBoard::<2, 2>::new();
 
         let top_left = empty.place(Player::X, 0, 0);
         assert_eq!(top_left, Ok(()));
@@ -356,7 +356,7 @@ mod test_placers {
 
     #[test]
     fn place_occupied() {
-        let mut full = MnkBoard::<2, 2, 2>::from([
+        let mut full = MnkBoard::from([
             [Space::Stone(Player::X), Space::Stone(Player::O)],
             [Space::Stone(Player::O), Space::Stone(Player::X)],
         ]);
@@ -396,7 +396,7 @@ mod test_placers {
 
     #[test]
     fn place_out_of_bounds() {
-        let mut empty = MnkBoard::<2, 2, 2>::new();
+        let mut empty: MnkBoard<2, 2> = MnkBoard::new();
 
         let high_row_x = empty.place(Player::X, 2, 0);
         assert_eq!(
@@ -423,7 +423,7 @@ mod test_placers {
 
     #[test]
     fn place_unchecked_empty() {
-        let mut empty = MnkBoard::<2, 2, 2>::new();
+        let mut empty = MnkBoard::<2, 2>::new();
 
         unsafe {
             empty.place_unchecked(Player::X, 0, 0);
@@ -472,7 +472,7 @@ mod test_placers {
 
     #[test]
     fn place_unchecked_occupied() {
-        let mut all_x = MnkBoard::<2, 2, 2>::from([
+        let mut all_x = MnkBoard::from([
             [Space::Stone(Player::X), Space::Stone(Player::X)],
             [Space::Stone(Player::X), Space::Stone(Player::X)],
         ]);
@@ -527,8 +527,8 @@ mod test_placers {
 mod test_getters {
     use super::*;
 
-    fn square() -> MnkBoard<2, 2, 2> {
-        MnkBoard::<2, 2, 2>::from([
+    fn square() -> MnkBoard<2, 2> {
+        MnkBoard::from([
             [Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Stone(Player::O)],
         ])
@@ -578,7 +578,7 @@ mod test_square_board {
     // These tests use `Vec::contains` for durability against changes in iteration order.
     use super::*;
 
-    fn square_board() -> MnkBoard<5, 5, 3> {
+    fn square_board() -> MnkBoard<5, 5> {
         MnkBoard::from([
             [
                 Space::Empty,
@@ -837,7 +837,7 @@ mod test_square_board {
 mod test_rectangular_boards {
     use super::*;
 
-    fn tall_board() -> MnkBoard<5, 4, 3> {
+    fn tall_board() -> MnkBoard<5, 4> {
         MnkBoard::from([
             [
                 Space::Empty,
@@ -872,7 +872,7 @@ mod test_rectangular_boards {
         ])
     }
 
-    fn wide_board() -> MnkBoard<4, 5, 3> {
+    fn wide_board() -> MnkBoard<4, 5> {
         MnkBoard::from([
             [
                 Space::Empty,
@@ -1098,7 +1098,7 @@ mod test_mnk_board_display {
 
     #[test]
     fn squares() {
-        let one = MnkBoard::<1, 1, 1>::from([[Space::Stone(Player::X)]]);
+        let one = MnkBoard::from([[Space::Stone(Player::X)]]);
         assert_eq!(
             one.to_string(),
             "+-+\n\
@@ -1106,7 +1106,7 @@ mod test_mnk_board_display {
              +-+"
         );
 
-        let two = MnkBoard::<2, 2, 2>::from([
+        let two = MnkBoard::from([
             [Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Stone(Player::O)],
         ]);
@@ -1119,7 +1119,7 @@ mod test_mnk_board_display {
              +-+-+"
         );
 
-        let three = MnkBoard::<3, 3, 3>::from([
+        let three = MnkBoard::from([
             [
                 Space::Stone(Player::X),
                 Space::Empty,
@@ -1150,7 +1150,7 @@ mod test_mnk_board_display {
 
     #[test]
     fn rectangles() {
-        let tall = MnkBoard::<3, 2, 2>::from([
+        let tall = MnkBoard::from([
             [Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Stone(Player::O)],
             [Space::Stone(Player::X), Space::Stone(Player::O)],
@@ -1166,7 +1166,7 @@ mod test_mnk_board_display {
              +-+-+"
         );
 
-        let wide = MnkBoard::<2, 3, 2>::from([
+        let wide = MnkBoard::from([
             [
                 Space::Stone(Player::X),
                 Space::Empty,

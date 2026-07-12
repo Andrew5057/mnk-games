@@ -104,7 +104,7 @@ fn winner_in_runs<'a>(
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkGame<const R: usize, const C: usize, const K: usize> {
-    board: MnkBoard<R, C, K>,
+    board: MnkBoard<R, C>,
     status: GameStatus,
 }
 
@@ -114,14 +114,14 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            board: MnkBoard::<R, C, K>::new(),
+            board: MnkBoard::<R, C>::new(),
             status: GameStatus::Ongoing { next: Player::X },
         }
     }
 
     /// The current state of the game's [`MnkBoard`].
     #[must_use]
-    pub const fn board(&self) -> &MnkBoard<R, C, K> {
+    pub const fn board(&self) -> &MnkBoard<R, C> {
         &self.board
     }
 
@@ -213,7 +213,7 @@ impl<const R: usize, const C: usize, const K: usize> Default for MnkGame<R, C, K
     }
 }
 
-impl<const R: usize, const C: usize, const K: usize> From<MnkGame<R, C, K>> for MnkBoard<R, C, K> {
+impl<const R: usize, const C: usize, const K: usize> From<MnkGame<R, C, K>> for MnkBoard<R, C> {
     fn from(game: MnkGame<R, C, K>) -> Self {
         game.board
     }
@@ -348,34 +348,34 @@ mod test_play_at {
 
     #[test]
     fn rejects_finished_games() {
-        let mut drawn = MnkGame::<1, 1, 1>::new();
+        let mut drawn: MnkGame<1, 1, 1> = MnkGame::new();
         drawn.status = GameStatus::Drawn;
         assert_eq!(
             drawn.play_at(0, 0),
             Err(PlayError::GameOver(GameStatus::Drawn))
         );
-        assert_eq!(drawn.board, MnkBoard::<1, 1, 1>::new());
+        assert_eq!(drawn.board, MnkBoard::<1, 1>::new());
 
-        let mut x_won = MnkGame::<1, 1, 1>::new();
+        let mut x_won: MnkGame<1, 1, 1> = MnkGame::new();
         x_won.status = GameStatus::Won(Player::X);
         assert_eq!(
             x_won.play_at(0, 0),
             Err(PlayError::GameOver(GameStatus::Won(Player::X)))
         );
-        assert_eq!(x_won.board, MnkBoard::<1, 1, 1>::new());
+        assert_eq!(x_won.board, MnkBoard::<1, 1>::new());
 
-        let mut o_won = MnkGame::<1, 1, 1>::new();
+        let mut o_won: MnkGame<1, 1, 1> = MnkGame::new();
         o_won.status = GameStatus::Won(Player::O);
         assert_eq!(
             o_won.play_at(0, 0),
             Err(PlayError::GameOver(GameStatus::Won(Player::O)))
         );
-        assert_eq!(o_won.board, MnkBoard::<1, 1, 1>::new());
+        assert_eq!(o_won.board, MnkBoard::<1, 1>::new());
     }
 
     #[test]
     fn rejects_place_errors() {
-        let mut empty = MnkGame::<1, 1, 1>::new();
+        let mut empty: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(
             empty.play_at(1, 0),
             Err(PlayError::PlaceError(PlaceError::OutOfBounds {
@@ -387,11 +387,11 @@ mod test_play_at {
 
     #[test]
     fn depends_on_next_player() {
-        let mut x_plays = MnkGame::<1, 1, 1>::new();
+        let mut x_plays: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(x_plays.play_at(0, 0), Ok(()));
         assert_eq!(x_plays.board.get(0, 0), Some(&Space::Stone(Player::X)));
 
-        let mut o_plays = MnkGame::<1, 1, 1>::new();
+        let mut o_plays: MnkGame<1, 1, 1> = MnkGame::new();
         o_plays.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(o_plays.play_at(0, 0), Ok(()));
         assert_eq!(o_plays.board.get(0, 0), Some(&Space::Stone(Player::O)));
@@ -399,11 +399,11 @@ mod test_play_at {
 
     #[test]
     fn swaps_next_player() {
-        let mut x_plays = MnkGame::<2, 2, 2>::new();
+        let mut x_plays: MnkGame<2, 2, 2> = MnkGame::new();
         assert_eq!(x_plays.play_at(0, 0), Ok(()));
         assert_eq!(x_plays.status, GameStatus::Ongoing { next: Player::O });
 
-        let mut o_plays = MnkGame::<2, 2, 2>::new();
+        let mut o_plays: MnkGame<2, 2, 2> = MnkGame::new();
         o_plays.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(o_plays.play_at(0, 0), Ok(()));
         assert_eq!(o_plays.status, GameStatus::Ongoing { next: Player::X });
@@ -411,7 +411,7 @@ mod test_play_at {
 
     #[test]
     fn updates_status() {
-        let mut x_wins = MnkGame::<1, 1, 1>::new();
+        let mut x_wins: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(x_wins.play_at(0, 0), Ok(()));
         assert_eq!(x_wins.status, GameStatus::Won(Player::X));
     }
@@ -424,12 +424,12 @@ mod test_update_status {
 
     #[test]
     fn detects_wins() {
-        let mut x_wins = MnkGame::<1, 1, 1>::new();
+        let mut x_wins: MnkGame<1, 1, 1> = MnkGame::new();
         x_wins.board = MnkBoard::from([[Space::Stone(Player::X)]]);
         x_wins.update_status();
         assert_eq!(x_wins.status, GameStatus::Won(Player::X));
 
-        let mut o_wins = MnkGame::<1, 1, 1>::new();
+        let mut o_wins: MnkGame<1, 1, 1> = MnkGame::new();
         o_wins.board = MnkBoard::from([[Space::Stone(Player::O)]]);
         o_wins.update_status();
         assert_eq!(o_wins.status, GameStatus::Won(Player::O));
@@ -437,7 +437,7 @@ mod test_update_status {
 
     #[test]
     fn detects_draws() {
-        let mut drawn = MnkGame::<1, 1, 2>::new();
+        let mut drawn: MnkGame<1, 1, 2> = MnkGame::new();
         drawn.board = MnkBoard::from([[Space::Stone(Player::X)]]);
         drawn.update_status();
         assert_eq!(drawn.status, GameStatus::Drawn);
@@ -445,7 +445,7 @@ mod test_update_status {
 
     #[test]
     fn detects_ongoing() {
-        let mut ongoing = MnkGame::<1, 1, 1>::new();
+        let mut ongoing: MnkGame<1, 1, 1> = MnkGame::new();
         ongoing.update_status();
         assert_eq!(ongoing.status, GameStatus::Ongoing { next: Player::X });
     }
@@ -456,7 +456,7 @@ mod test_winner {
     use super::*;
 
     fn ongoing_game<const R: usize, const C: usize, const K: usize>(
-        board: MnkBoard<R, C, K>,
+        board: MnkBoard<R, C>,
     ) -> MnkGame<R, C, K> {
         MnkGame {
             board,
@@ -466,13 +466,13 @@ mod test_winner {
 
     #[test]
     fn draws() {
-        let empty_0x0 = ongoing_game(MnkBoard::<0, 0, 1>::new());
+        let empty_0x0: MnkGame<0, 0, 1> = ongoing_game(MnkBoard::new());
         assert!(empty_0x0.winner().is_none());
 
-        let empty_3x3 = ongoing_game(MnkBoard::<3, 3, 3>::new());
+        let empty_3x3: MnkGame<3, 3, 3> = ongoing_game(MnkBoard::new());
         assert!(empty_3x3.winner().is_none());
 
-        let drawn_3x3 = ongoing_game(MnkBoard::<3, 3, 3>::from([
+        let drawn_3x3: MnkGame<3, 3, 3> = ongoing_game(MnkBoard::from([
             [
                 Space::Stone(Player::X),
                 Space::Stone(Player::O),
@@ -494,7 +494,7 @@ mod test_winner {
 
     #[test]
     fn row_win() {
-        let row_win = ongoing_game(MnkBoard::<3, 3, 3>::from([
+        let row_win: MnkGame<3, 3, 3> = ongoing_game(MnkBoard::from([
             [
                 Space::Stone(Player::X),
                 Space::Stone(Player::X),
@@ -508,7 +508,7 @@ mod test_winner {
 
     #[test]
     fn column_win() {
-        let column_win = ongoing_game(MnkBoard::<3, 3, 3>::from([
+        let column_win: MnkGame<3, 3, 3> = ongoing_game(MnkBoard::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
@@ -518,7 +518,7 @@ mod test_winner {
 
     #[test]
     fn top_right_win() {
-        let top_right_win = ongoing_game(MnkBoard::<3, 3, 2>::from([
+        let top_right_win: MnkGame<3, 3, 2> = ongoing_game(MnkBoard::from([
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Empty, Space::Empty],
@@ -528,7 +528,7 @@ mod test_winner {
 
     #[test]
     fn left_down_win() {
-        let left_down_win = ongoing_game(MnkBoard::<4, 3, 3>::from([
+        let left_down_win: MnkGame<4, 3, 3> = ongoing_game(MnkBoard::from([
             [Space::Empty, Space::Empty, Space::Empty],
             [Space::Stone(Player::X), Space::Empty, Space::Empty],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
@@ -539,7 +539,7 @@ mod test_winner {
 
     #[test]
     fn top_left_win() {
-        let top_left_win = ongoing_game(MnkBoard::<3, 3, 2>::from([
+        let top_left_win: MnkGame<3, 3, 2> = ongoing_game(MnkBoard::from([
             [Space::Empty, Space::Empty, Space::Stone(Player::X)],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
             [Space::Empty, Space::Empty, Space::Empty],
@@ -549,7 +549,7 @@ mod test_winner {
 
     #[test]
     fn right_down_win() {
-        let right_down_win = ongoing_game(MnkBoard::<4, 3, 3>::from([
+        let right_down_win: MnkGame<4, 3, 3> = ongoing_game(MnkBoard::from([
             [Space::Empty, Space::Empty, Space::Empty],
             [Space::Empty, Space::Empty, Space::Stone(Player::X)],
             [Space::Empty, Space::Stone(Player::X), Space::Empty],
@@ -565,7 +565,7 @@ mod test_mnk_game_display {
 
     #[test]
     fn draw() {
-        let mut draw = MnkGame::<1, 1, 1>::new();
+        let mut draw: MnkGame<1, 1, 1> = MnkGame::new();
         draw.status = GameStatus::Drawn;
         assert_eq!(
             draw.to_string(),
@@ -578,7 +578,7 @@ mod test_mnk_game_display {
 
     #[test]
     fn ongoing() {
-        let x_next = MnkGame::<1, 1, 1>::new();
+        let x_next: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(
             x_next.to_string(),
             "+-+\n\
@@ -587,7 +587,7 @@ mod test_mnk_game_display {
              Next: X"
         );
 
-        let mut o_next = MnkGame::<1, 1, 1>::new();
+        let mut o_next: MnkGame<1, 1, 1> = MnkGame::new();
         o_next.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(
             o_next.to_string(),
@@ -600,7 +600,7 @@ mod test_mnk_game_display {
 
     #[test]
     fn won() {
-        let mut x_won = MnkGame::<1, 1, 1>::new();
+        let mut x_won: MnkGame<1, 1, 1> = MnkGame::new();
         x_won.status = GameStatus::Won(Player::X);
         assert_eq!(
             x_won.to_string(),
@@ -610,7 +610,7 @@ mod test_mnk_game_display {
              X won!"
         );
 
-        let mut o_won = MnkGame::<1, 1, 1>::new();
+        let mut o_won: MnkGame<1, 1, 1> = MnkGame::new();
         o_won.status = GameStatus::Won(Player::O);
         assert_eq!(
             o_won.to_string(),
