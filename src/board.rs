@@ -222,19 +222,19 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
             }
         }
         if R >= K && C >= K {
-            let mut winner = Self::winner_in_runs(self.top_right_diagonals());
+            let mut winner = Self::winner_in_runs(self.top_right_diagonals(K));
             if winner.is_some() {
                 return winner;
             }
-            winner = Self::winner_in_runs(self.left_down_diagonals());
+            winner = Self::winner_in_runs(self.left_down_diagonals(K));
             if winner.is_some() {
                 return winner;
             }
-            winner = Self::winner_in_runs(self.top_left_diagonals());
+            winner = Self::winner_in_runs(self.top_left_diagonals(K));
             if winner.is_some() {
                 return winner;
             }
-            Self::winner_in_runs(self.right_down_diagonals())
+            Self::winner_in_runs(self.right_down_diagonals(K))
         } else {
             None
         }
@@ -280,7 +280,7 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     /// # Panics
     ///
     /// If a coordinate pair is out of bounds.
-    fn coords_to_spaces(
+    pub(crate) fn coords_to_spaces(
         &self,
         coords: impl Iterator<Item = (usize, usize)>,
     ) -> impl Iterator<Item = &'_ Space> {
@@ -288,44 +288,58 @@ impl<const R: usize, const C: usize, const K: usize> MnkBoard<R, C, K> {
     }
 
     /// Returns an [`Iterator`] over the rows of the board.
-    fn rows(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+    pub(crate) fn rows(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
         self.row_array.iter().map(|row| row.iter())
     }
 
     /// Returns an [`Iterator`] over the columns of the board.
-    fn columns(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+    pub(crate) fn columns(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
         (0..C).map(move |c| self.row_array.iter().map(move |row| &row[c]))
     }
 
     /// Returns an [`Iterator`] over diagonals that start at the top and move right.
     ///
-    /// Only iterates over diagonals of length at least `K`.
-    fn top_right_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
-        (0..=(C - K)).map(move |left_col| self.coords_to_spaces(iter::zip(0..R, left_col..C)))
+    /// Only iterates over diagonals of length at least `must_use`.
+    pub(crate) fn top_right_diagonals(
+        &self,
+        min_length: usize,
+    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+        (0..=(C - min_length))
+            .map(move |left_col| self.coords_to_spaces(iter::zip(0..R, left_col..C)))
     }
 
     /// Returns an [`Iterator`] over diagonals that start on the left and move down.
     ///
-    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`. (This
-    /// avoids overlap with [`MnkBoard::top_right_diagonals`].)
-    fn left_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
-        (1..=(R - K)).map(move |top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)))
+    /// Only iterates over diagonals of length at least `must_use`. Skips the highest such diagonal.
+    /// (This avoids overlap with [`MnkBoard::top_right_diagonals`].)
+    pub(crate) fn left_down_diagonals(
+        &self,
+        min_length: usize,
+    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+        (1..=(R - min_length))
+            .map(move |top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)))
     }
 
     /// Returns an [`Iterator`] over the diagonals that start at the top and move left.
     ///
-    /// Only iterates over diagonals of length at least `K`.
-    fn top_left_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
-        ((K - 1)..C)
+    /// Only iterates over diagonals of length at least `must_use`.
+    pub(crate) fn top_left_diagonals(
+        &self,
+        min_length: usize,
+    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+        ((min_length - 1)..C)
             .map(move |last_col| self.coords_to_spaces(iter::zip(0..R, (0..=last_col).rev())))
     }
 
     /// Returns an [`Iterator`] over the diagonals that start on the right and move down.
     ///
-    /// Skips the highest such diagonal. Only iterates over diagonals of length at least `K`. (This
-    /// avoids overlap with [`MnkBoard::top_left_diagonals`].)
-    fn right_down_diagonals(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
-        (1..=(R - K))
+    /// Only iterates over diagonals of length at least `must_use`. Skips the highest such diagonal.
+    /// (This avoids overlap with [`MnkBoard::top_left_diagonals`].)
+    pub(crate) fn right_down_diagonals(
+        &self,
+        min_length: usize,
+    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Space>> {
+        (1..=(R - min_length))
             .map(move |last_row| self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
     }
 }
@@ -1012,7 +1026,10 @@ mod test_square_board {
     #[test]
     fn top_right() {
         let board = square_board();
-        let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .top_right_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
@@ -1043,7 +1060,10 @@ mod test_square_board {
     #[test]
     fn left_down() {
         let board = square_board();
-        let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .left_down_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
@@ -1065,7 +1085,7 @@ mod test_square_board {
     #[test]
     fn top_left() {
         let board = square_board();
-        let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board.top_left_diagonals(3).map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
@@ -1096,7 +1116,7 @@ mod test_square_board {
     fn right_down() {
         let board = square_board();
         let diags: Vec<Vec<&Space>> = board
-            .right_down_diagonals()
+            .right_down_diagonals(3)
             .map(Iterator::collect)
             .collect();
         assert_eq!(diags.len(), 2);
@@ -1189,7 +1209,10 @@ mod test_rectangular_boards {
     #[test]
     fn tall_top_right_diags() {
         let board = tall_board();
-        let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .top_right_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
@@ -1211,7 +1234,10 @@ mod test_rectangular_boards {
     #[test]
     fn tall_left_down_diags() {
         let board = tall_board();
-        let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .left_down_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
@@ -1233,7 +1259,7 @@ mod test_rectangular_boards {
     #[test]
     fn tall_top_left_diags() {
         let board = tall_board();
-        let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board.top_left_diagonals(3).map(Iterator::collect).collect();
         assert_eq!(diags.len(), 2);
 
         let first_diag = vec![
@@ -1256,7 +1282,7 @@ mod test_rectangular_boards {
     fn tall_right_down_diags() {
         let board = tall_board();
         let diags: Vec<Vec<&Space>> = board
-            .right_down_diagonals()
+            .right_down_diagonals(3)
             .map(Iterator::collect)
             .collect();
         assert_eq!(diags.len(), 2);
@@ -1280,7 +1306,10 @@ mod test_rectangular_boards {
     #[test]
     fn wide_top_right_diags() {
         let board = wide_board();
-        let diags: Vec<Vec<&Space>> = board.top_right_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .top_right_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
@@ -1310,7 +1339,10 @@ mod test_rectangular_boards {
     #[test]
     fn wide_left_down_diags() {
         let board = wide_board();
-        let diags: Vec<Vec<&Space>> = board.left_down_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board
+            .left_down_diagonals(3)
+            .map(Iterator::collect)
+            .collect();
         let diag = vec![&Space::Stone(Player::X), &Space::Empty, &Space::Empty];
         assert_eq!(diags, [diag]);
     }
@@ -1318,7 +1350,7 @@ mod test_rectangular_boards {
     #[test]
     fn wide_top_left_diags() {
         let board = wide_board();
-        let diags: Vec<Vec<&Space>> = board.top_left_diagonals().map(Iterator::collect).collect();
+        let diags: Vec<Vec<&Space>> = board.top_left_diagonals(3).map(Iterator::collect).collect();
         assert_eq!(diags.len(), 3);
 
         let first_diag = vec![
@@ -1349,7 +1381,7 @@ mod test_rectangular_boards {
     fn wide_right_up_diags() {
         let board = wide_board();
         let diags: Vec<Vec<&Space>> = board
-            .right_down_diagonals()
+            .right_down_diagonals(3)
             .map(Iterator::collect)
             .collect();
         let diag = vec![
