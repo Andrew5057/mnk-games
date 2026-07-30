@@ -1,6 +1,6 @@
 //! [`MnkGame`]s with gravity, which restricts vertical stone placement.
 
-use crate::{GameStatus, MnkBoard, MnkGame, PlaceError, PlayError};
+use crate::{GameStatus, MnkBoard, MnkGame, OutOfBounds, PlaceError, PlayError};
 use std::fmt;
 
 /// A restricted [`MnkGame`] where stones must be placed at the bottom of a column.
@@ -33,9 +33,9 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
     /// the one with the highest row index).
     ///
     /// # Errors
-    /// - A [`PlayError::RuleError`] if the column is full.
-    /// - A [`PlayError::PlaceError`] with [`PlaceError::OutOfBounds`] and an arbitrary `row` if the
-    ///   column is out of bounds.
+    /// - [`PlayError::Place(PlaceError::Occupied)`][PlayError::Place] if the column is full.
+    /// - A [`PlayError::Place(PlaceError::OutOfBounds)`][PlayError::Place] if the column is out of
+    ///   bounds.
     /// - Any errors thrown by [`MnkGame::play_at`].
     pub fn play_in(&mut self, column: usize) -> Result<(), PlayError> {
         let row = lowest_row_in(self.board(), column)?;
@@ -49,19 +49,20 @@ fn lowest_row_in<const R: usize, const C: usize>(
     column: usize,
 ) -> Result<usize, PlayError> {
     if column >= C {
-        return Err(PlayError::PlaceError(PlaceError::OutOfBounds));
+        return Err(PlayError::Place(PlaceError::OutOfBounds(OutOfBounds {
+            row: None,
+            column: Some(column),
+        })));
     }
 
     let mut rows = (0..R).rev();
-    rows.find(|&r| {
+    let lowest_row = rows.find(|&r| {
         board
             .get(r, column)
             .expect("column guard should guarantee in-bounds")
             .is_none()
-    })
-    .ok_or_else(|| PlayError::RuleError {
-        message: format!("column {column} is full"),
-    })
+    });
+    lowest_row.ok_or(PlayError::Place(PlaceError::Occupied { player: None }))
 }
 
 impl<const R: usize, const C: usize, const K: usize> Default for GravityGame<R, C, K> {
@@ -124,7 +125,10 @@ mod test_lowest_row_in {
         let one_one: MnkBoard<1, 1> = MnkBoard::new();
         assert_matches!(
             lowest_row_in(&one_one, 1),
-            Err(PlayError::PlaceError(PlaceError::OutOfBounds))
+            Err(PlayError::Place(PlaceError::OutOfBounds(OutOfBounds {
+                row: None,
+                column: Some(1)
+            })))
         );
     }
 
@@ -134,7 +138,7 @@ mod test_lowest_row_in {
         _ = one_one.place(Player::X, 0, 0);
         assert_matches!(
             lowest_row_in(&one_one, 0),
-            Err(PlayError::RuleError { message: _ })
+            Err(PlayError::Place(PlaceError::Occupied { player: None }))
         );
     }
 }

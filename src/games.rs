@@ -9,20 +9,20 @@ pub enum PlayError {
     /// An error which may occur when the game is already over.
     GameOver(GameStatus),
     /// An error which may occur when a stone cannot be placed at the indicated position.
-    PlaceError(PlaceError),
-    /// An error which may occur when a move is against a game's rules.
-    RuleError {
-        /// An informative message about the violated rule.
-        message: String,
-    },
+    Place(PlaceError),
+}
+
+impl From<PlaceError> for PlayError {
+    fn from(error: PlaceError) -> Self {
+        Self::Place(error)
+    }
 }
 
 impl fmt::Display for PlayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::GameOver(status) => write!(f, "game already over: {status}"),
-            Self::PlaceError(place_error) => write!(f, "impossible move: {place_error}"),
-            Self::RuleError { message } => write!(f, "illegal move: {message}"),
+            Self::Place(place_error) => write!(f, "impossible move: {place_error}"),
         }
     }
 }
@@ -140,18 +140,16 @@ impl<const R: usize, const C: usize, const K: usize> MnkGame<R, C, K> {
     /// # Errors
     ///
     /// - [`PlayError::GameOver`] if the game is [`GameStatus::Drawn`] or [`GameStatus::Won`].
-    /// - [`PlayError::PlaceError`] if the indicated location is not a valid move.
+    /// - [`PlayError::Place`] if the indicated location is not a valid move.
     pub fn play_at(&mut self, row: usize, column: usize) -> Result<(), PlayError> {
         match self.status {
             GameStatus::Drawn | GameStatus::Won(_) => Err(PlayError::GameOver(self.status)),
-            GameStatus::Ongoing { next } => self.board.place(next, row, column).map_or_else(
-                |err| Err(PlayError::PlaceError(err)),
-                |()| {
-                    self.status = GameStatus::Ongoing { next: !next };
-                    self.update_status();
-                    Ok(())
-                },
-            ),
+            GameStatus::Ongoing { next } => {
+                self.board.place(next, row, column)?;
+                self.status = GameStatus::Ongoing { next: !next };
+                self.update_status();
+                Ok(())
+            }
         }
     }
 
@@ -325,6 +323,7 @@ mod test_winner_in_runs {
 #[cfg(test)]
 mod test_play_at {
     use super::*;
+    use crate::OutOfBounds;
 
     #[test]
     fn rejects_finished_games() {
@@ -358,7 +357,10 @@ mod test_play_at {
         let mut empty: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(
             empty.play_at(1, 0),
-            Err(PlayError::PlaceError(PlaceError::OutOfBounds))
+            Err(PlayError::Place(PlaceError::OutOfBounds(OutOfBounds {
+                row: Some(1),
+                column: None
+            })))
         );
     }
 

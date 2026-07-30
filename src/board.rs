@@ -34,11 +34,25 @@ impl Not for Player {
 
 /// An error which can occur when the intended location is not within the board's bounds.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct OutOfBounds;
+pub struct OutOfBounds {
+    /// If [`Some`], the intended row, which is out of bounds.
+    ///
+    /// If [`None`], the intended row may or may not be out of bounds.
+    pub row: Option<usize>,
+    /// If [`Some`], the intended column, which is out of bounds.
+    ///
+    /// If [`None`], the intended column may or may not be out of bounds.
+    pub column: Option<usize>,
+}
 
 impl fmt::Display for OutOfBounds {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "location is out of bounds")
+        match (self.row, self.column) {
+            (Some(row), Some(col)) => write!(f, "row {row} and column {col} are out of bounds"),
+            (Some(row), None) => write!(f, "row {row} is out of bounds"),
+            (None, Some(col)) => write!(f, "column {col} is out of bounds"),
+            (None, None) => write!(f, "location is out of bounds"),
+        }
     }
 }
 
@@ -50,22 +64,27 @@ impl Error for OutOfBounds {}
 pub enum PlaceError {
     /// An error which can occur when the location is already occupied.
     Occupied {
-        /// The player who is occupying the location.
-        player: Player,
+        /// The player who is occupying the location, if known.
+        player: Option<Player>,
     },
     /// An error which can occur when the intended location is not within the board's bounds.
-    OutOfBounds,
+    OutOfBounds(OutOfBounds),
+}
+
+impl From<OutOfBounds> for PlaceError {
+    fn from(oob: OutOfBounds) -> Self {
+        Self::OutOfBounds(oob)
+    }
 }
 
 impl fmt::Display for PlaceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Occupied { player } => {
-                write!(f, "already occupied by {player}")
-            }
-            Self::OutOfBounds => {
-                write!(f, "location is out of bounds")
-            }
+            Self::Occupied { player } => match player {
+                Some(player) => write!(f, "already occupied by {player}"),
+                None => write!(f, "already occupied"),
+            },
+            Self::OutOfBounds(oob) => oob.fmt(f),
         }
     }
 }
@@ -110,22 +129,32 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     ///
     /// # Errors
     ///
-    ///  - [`PlaceError::Occupied`] if the corresponding space is already [`Some`].
+    ///  - [`PlaceError::Occupied`] if the corresponding space is occupied.
     ///  - [`PlaceError::OutOfBounds`] if either index is out of bounds.
     pub fn place(&mut self, player: Player, row: usize, column: usize) -> Result<(), PlaceError> {
-        let location = self
+        let space = self
             .row_array
             .get_mut(row)
-            .and_then(|row| row.get_mut(column));
-        location.map_or(Err(PlaceError::OutOfBounds), |space| {
-            space.map_or_else(
-                || {
-                    *space = Some(player);
-                    Ok(())
-                },
-                |player| Err(PlaceError::Occupied { player }),
-            )
-        })
+            .ok_or(OutOfBounds {
+                row: Some(row),
+                column: None,
+            })?
+            .get_mut(column)
+            .ok_or(OutOfBounds {
+                row: None,
+                column: Some(column),
+            })?;
+        space.map_or_else(
+            || {
+                *space = Some(player);
+                Ok(())
+            },
+            |player| {
+                Err(PlaceError::Occupied {
+                    player: Some(player),
+                })
+            },
+        )
     }
 
     /// Place [`Some(Player)`][Some] on the board without bounds or overlap checking.
@@ -149,11 +178,19 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     /// Returns the [`Option<Player>`] at the specified row and column.
     ///
     /// # Errors
-    /// `OutOfBounds` if either index is out of bounds.
+    /// [`OutOfBounds`] if either index is out of bounds.
     pub fn get(&self, row: usize, column: usize) -> Result<&Option<Player>, OutOfBounds> {
         self.row_array
             .get(row)
-            .map_or(Err(OutOfBounds), |row| row.get(column).ok_or(OutOfBounds))
+            .ok_or(OutOfBounds {
+                row: Some(row),
+                column: None,
+            })?
+            .get(column)
+            .ok_or(OutOfBounds {
+                row: None,
+                column: Some(column),
+            })
     }
 
     /// Returns the [`Option<Player>`] at the specified row and column, without checking bounds.
@@ -319,35 +356,63 @@ mod test_placers {
         ]);
 
         let top_left_x = full.place(Player::X, 0, 0);
-        assert_eq!(top_left_x, Err(PlaceError::Occupied { player: Player::X }));
+        assert_eq!(
+            top_left_x,
+            Err(PlaceError::Occupied {
+                player: Some(Player::X)
+            })
+        );
         let top_left_o = full.place(Player::O, 0, 0);
-        assert_eq!(top_left_o, Err(PlaceError::Occupied { player: Player::X }));
+        assert_eq!(
+            top_left_o,
+            Err(PlaceError::Occupied {
+                player: Some(Player::X)
+            })
+        );
 
         let top_right_x = full.place(Player::X, 0, 1);
-        assert_eq!(top_right_x, Err(PlaceError::Occupied { player: Player::O }));
+        assert_eq!(
+            top_right_x,
+            Err(PlaceError::Occupied {
+                player: Some(Player::O)
+            })
+        );
         let top_right_o = full.place(Player::O, 0, 1);
-        assert_eq!(top_right_o, Err(PlaceError::Occupied { player: Player::O }));
+        assert_eq!(
+            top_right_o,
+            Err(PlaceError::Occupied {
+                player: Some(Player::O)
+            })
+        );
 
         let bottom_left_x = full.place(Player::X, 1, 0);
         assert_eq!(
             bottom_left_x,
-            Err(PlaceError::Occupied { player: Player::O })
+            Err(PlaceError::Occupied {
+                player: Some(Player::O)
+            })
         );
         let bottom_left_o = full.place(Player::O, 1, 0);
         assert_eq!(
             bottom_left_o,
-            Err(PlaceError::Occupied { player: Player::O })
+            Err(PlaceError::Occupied {
+                player: Some(Player::O)
+            })
         );
 
         let bottom_right_x = full.place(Player::X, 1, 1);
         assert_eq!(
             bottom_right_x,
-            Err(PlaceError::Occupied { player: Player::X })
+            Err(PlaceError::Occupied {
+                player: Some(Player::X)
+            })
         );
         let bottom_right_o = full.place(Player::O, 1, 1);
         assert_eq!(
             bottom_right_o,
-            Err(PlaceError::Occupied { player: Player::X })
+            Err(PlaceError::Occupied {
+                player: Some(Player::X)
+            })
         );
     }
 
@@ -356,14 +421,38 @@ mod test_placers {
         let mut empty: MnkBoard<2, 2> = MnkBoard::new();
 
         let high_row_x = empty.place(Player::X, 2, 0);
-        assert_eq!(high_row_x, Err(PlaceError::OutOfBounds));
+        assert_eq!(
+            high_row_x,
+            Err(PlaceError::OutOfBounds(OutOfBounds {
+                row: Some(2),
+                column: None
+            }))
+        );
         let high_row_o = empty.place(Player::O, 2, 0);
-        assert_eq!(high_row_o, Err(PlaceError::OutOfBounds));
+        assert_eq!(
+            high_row_o,
+            Err(PlaceError::OutOfBounds(OutOfBounds {
+                row: Some(2),
+                column: None
+            }))
+        );
 
         let high_column_x = empty.place(Player::X, 0, 2);
-        assert_eq!(high_column_x, Err(PlaceError::OutOfBounds));
+        assert_eq!(
+            high_column_x,
+            Err(PlaceError::OutOfBounds(OutOfBounds {
+                row: None,
+                column: Some(2)
+            }))
+        );
         let high_column_o = empty.place(Player::O, 0, 2);
-        assert_eq!(high_column_o, Err(PlaceError::OutOfBounds));
+        assert_eq!(
+            high_column_o,
+            Err(PlaceError::OutOfBounds(OutOfBounds {
+                row: None,
+                column: Some(2)
+            }))
+        );
     }
 
     #[test]
@@ -478,8 +567,20 @@ mod test_getters {
     fn get_out_of_bounds() {
         let board = square();
 
-        assert_eq!(board.get(2, 0), Err(OutOfBounds));
-        assert_eq!(board.get(0, 2), Err(OutOfBounds));
+        assert_eq!(
+            board.get(2, 0),
+            Err(OutOfBounds {
+                row: Some(2),
+                column: None
+            })
+        );
+        assert_eq!(
+            board.get(0, 2),
+            Err(OutOfBounds {
+                row: None,
+                column: Some(2)
+            })
+        );
     }
 
     #[test]

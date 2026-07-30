@@ -1,7 +1,7 @@
 //! Representations of k-in-a-row games.
 
 mod board;
-pub use board::{MnkBoard, PlaceError, Player};
+pub use board::{MnkBoard, OutOfBounds, PlaceError, Player};
 
 mod games;
 pub use games::{GameStatus, MnkGame, PlayError};
