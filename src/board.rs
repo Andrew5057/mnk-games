@@ -1,3 +1,5 @@
+//! m-by-n game boards themselves and simple foundational infrastructure for them.
+
 use std::error::Error;
 use std::ops::Not;
 use std::{fmt, iter};
@@ -102,6 +104,7 @@ impl Error for PlaceError {}
 /// user-facing code directly.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkBoard<const R: usize, const C: usize> {
+    /// A row-major array representing the spaces of the board.
     row_array: [[Option<Player>; C]; R],
 }
 
@@ -212,18 +215,18 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     /// If a coordinate pair is out of bounds.
     pub(crate) fn coords_to_spaces(
         &self,
-        coords: impl Iterator<Item = (usize, usize)>,
-    ) -> impl Iterator<Item = &'_ Option<Player>> {
+        coords: impl Iterator<Item=(usize, usize)>,
+    ) -> impl Iterator<Item=&'_ Option<Player>> {
         coords.map(move |(r, c)| &self.row_array[r][c])
     }
 
     /// Returns an [`Iterator`] over the rows of the board.
-    pub(crate) fn rows(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    pub(crate) fn rows(&self) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         self.row_array.iter().map(|row| row.iter())
     }
 
     /// Returns an [`Iterator`] over the columns of the board.
-    pub(crate) fn columns(&self) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    pub(crate) fn columns(&self) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         (0..C).map(move |c| self.row_array.iter().map(move |row| &row[c]))
     }
 
@@ -233,7 +236,7 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     pub(crate) fn top_right_diagonals(
         &self,
         min_length: usize,
-    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    ) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         (0..=(C - min_length))
             .map(move |left_col| self.coords_to_spaces(iter::zip(0..R, left_col..C)))
     }
@@ -245,7 +248,7 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     pub(crate) fn left_down_diagonals(
         &self,
         min_length: usize,
-    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    ) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         (1..=(R - min_length))
             .map(move |top_row| self.coords_to_spaces(iter::zip(top_row..R, 0..C)))
     }
@@ -256,7 +259,7 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     pub(crate) fn top_left_diagonals(
         &self,
         min_length: usize,
-    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    ) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         ((min_length - 1)..C)
             .map(move |last_col| self.coords_to_spaces(iter::zip(0..R, (0..=last_col).rev())))
     }
@@ -268,7 +271,7 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
     pub(crate) fn right_down_diagonals(
         &self,
         min_length: usize,
-    ) -> impl Iterator<Item = impl Iterator<Item = &'_ Option<Player>>> {
+    ) -> impl Iterator<Item=impl Iterator<Item=&'_ Option<Player>>> {
         (1..=(R - min_length))
             .map(move |last_row| self.coords_to_spaces(iter::zip(last_row..R, (0..C).rev())))
     }
@@ -307,6 +310,7 @@ impl<const R: usize, const C: usize> fmt::Display for MnkBoard<R, C> {
     }
 }
 
+/// Returns a single-character representation of the space.
 fn space_to_string(space: Option<Player>) -> String {
     space.map_or_else(|| " ".to_string(), |player| player.to_string())
 }

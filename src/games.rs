@@ -1,3 +1,5 @@
+//! Full *m,n,k*-games, including winner checking.
+
 use crate::{MnkBoard, PlaceError, Player};
 use std::error::Error;
 use std::fmt;
@@ -57,7 +59,7 @@ impl fmt::Display for GameStatus {
 /// [`Iterator`].
 #[must_use]
 fn winner_in_run<'a>(
-    run: impl IntoIterator<Item = &'a Option<Player>>,
+    run: impl IntoIterator<Item=&'a Option<Player>>,
     win_length: usize,
 ) -> Option<Player> {
     let mut consecutive = 0;
@@ -86,7 +88,7 @@ fn winner_in_run<'a>(
 /// Returns the first [`Player`] to be a winner in any of the passed runs.
 #[must_use]
 fn winner_in_runs<'a>(
-    runs: impl IntoIterator<Item = impl IntoIterator<Item = &'a Option<Player>>>,
+    runs: impl IntoIterator<Item=impl IntoIterator<Item=&'a Option<Player>>>,
     win_length: usize,
 ) -> Option<Player> {
     let mut winners = runs.into_iter().map(|run| winner_in_run(run, win_length));
@@ -104,7 +106,9 @@ fn winner_in_runs<'a>(
 /// [*m,n,k*-game]: https://en.wikipedia.org/wiki/M,n,k-game
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MnkGame<const R: usize, const C: usize, const K: usize> {
+    /// The board the game is played on.
     board: MnkBoard<R, C>,
+    /// The current status of the game.
     status: GameStatus,
 }
 

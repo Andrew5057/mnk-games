@@ -10,3 +10,12 @@ keywords = ["game", "math", "matrix", "game-theory"]
 categories = ["games", "mathematics"]
 
 [dependencies]
+
+[lints.rust]
+let-underscore = "deny"
+missing_docs = "deny"
+
+[lints.clippy]
+cargo = "warn"
+pedantic = "warn"
+missing_docs_in_private_items = "warn"

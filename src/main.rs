@@ -1,3 +1,7 @@
+//! A command line tool for playing various *m,n,k*-games.
+//!
+//! Currently supports tic-tac-toe, gomoku, and Connect Four.
+
 use mnk_games::gravity::GravityGame;
 use mnk_games::variants::{ConnectFour, Gomoku, TicTacToe};
 use mnk_games::{GameStatus, MnkGame};
@@ -6,10 +10,24 @@ use std::fmt::Display;
 use std::process::exit;
 use std::{error, io};
 
+/// Errors for the CLI.
 #[derive(Debug)]
 enum Error {
-    ArgumentCount { expected: String, actual: usize },
-    IllegalArgument { expected: String, actual: String },
+    /// Returned when an unexpected number of arguments is passed.
+    ArgumentCount {
+        /// The expected number(s) of arguments.
+        expected: String,
+        /// The actual number of arguments.
+        actual: usize,
+    },
+    /// Returned when an argument that does not match expectations is passed.
+    IllegalArgument {
+        /// The expected argument.
+        expected: String,
+        /// The actual argument.
+        actual: String,
+    },
+    /// Propagates IO errors.
     Io(io::Error),
 }
 
@@ -36,6 +54,7 @@ fn main() {
     }
 }
 
+/// Runs the main game logic, returning any unrecoverable errors.
 fn try_main() -> Result<(), Error> {
     let args: Vec<String> = args().collect();
 
