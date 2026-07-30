@@ -1,6 +1,6 @@
 //! [`MnkGame`]s with gravity, which restricts vertical stone placement.
 
-use crate::{GameStatus, MnkBoard, MnkGame, PlaceError, PlayError, Space};
+use crate::{GameStatus, MnkBoard, MnkGame, PlaceError, PlayError};
 use std::fmt;
 
 /// A restricted [`MnkGame`] where stones must be placed at the bottom of a column.
@@ -29,7 +29,7 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
 
     /// Attempts to play in the indicated column.
     ///
-    /// If the column has any [`Space::Empty`] in it, plays at the physically lowest one (that is,
+    /// If the column has any [`None`] in it, plays at the physically lowest one (that is,
     /// the one with the highest row index).
     ///
     /// # Errors
@@ -43,7 +43,7 @@ impl<const R: usize, const C: usize, const K: usize> GravityGame<R, C, K> {
     }
 }
 
-/// Find the physically lowest (numerically greatest) row index corresponding to a [`Space::Empty`].
+/// Find the physically lowest (numerically greatest) row index corresponding to a [`None`].
 fn lowest_row_in<const R: usize, const C: usize>(
     board: &MnkBoard<R, C>,
     column: usize,
@@ -60,11 +60,11 @@ fn lowest_row_in<const R: usize, const C: usize>(
         board
             .get(r, column)
             .expect("column guard should guarantee in-bounds")
-            == &Space::Empty
+            .is_none()
     })
-    .ok_or_else(|| PlayError::RuleError {
-        message: format!("column {column} is full"),
-    })
+        .ok_or_else(|| PlayError::RuleError {
+            message: format!("column {column} is full"),
+        })
 }
 
 impl<const R: usize, const C: usize, const K: usize> Default for GravityGame<R, C, K> {
@@ -80,7 +80,7 @@ impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>> 
 }
 
 impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>>
-    for MnkGame<R, C, K>
+for MnkGame<R, C, K>
 {
     fn from(game: GravityGame<R, C, K>) -> Self {
         game.0
