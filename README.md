@@ -3,13 +3,12 @@
 # *m,n,k*-Games
 
 Provides programmatic support for [*m,n,k*-games][*m,n,k*-game], in which two players compete to get *k* stones in a row
-on an *m*-by-*n* board.
+on an *m*-by- *n* board.
 
-This project currently includes representations of boards and standard *m,n,k*-games, as well as a CLI
-for tic-tac-toe and gomoku. Goals include:
+This project currently includes representations of boards, standard *m,n,k*-games, gravity-enabled *m,n,k*-games, and a
+CLI for tic-tac-toe, gomoku, and [Connect Four]. Goals include:
 
 - GUIs for playing games.
-- Variants like [Connect Four].
 - Tools for solving *m,n,k*-games.
 
 ## CLI
