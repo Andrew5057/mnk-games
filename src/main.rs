@@ -95,7 +95,7 @@ fn request_move<const R: usize, const C: usize, const K: usize>(
         let coords: Vec<Result<usize, _>> = input.trim().split(' ').map(str::parse).collect();
         match coords[..] {
             [Ok(row), Ok(column)] => {
-                if let Ok(()) = game.play_at(row, column) {
+                if game.play_at(row, column).is_ok() {
                     return Ok(());
                 }
                 println!("Illegal move");
@@ -142,7 +142,7 @@ fn request_gravity_move<const R: usize, const C: usize, const K: usize>(
 
         let parsed_input: Result<usize, _> = input.trim().parse();
         if let Ok(column) = parsed_input {
-            if let Ok(()) = game.play_in(column) {
+            if game.play_in(column).is_ok() {
                 return Ok(());
             }
             println!("Illegal move");
