@@ -62,9 +62,9 @@ fn lowest_row_in<const R: usize, const C: usize>(
             .expect("column guard should guarantee in-bounds")
             .is_none()
     })
-        .ok_or_else(|| PlayError::RuleError {
-            message: format!("column {column} is full"),
-        })
+    .ok_or_else(|| PlayError::RuleError {
+        message: format!("column {column} is full"),
+    })
 }
 
 impl<const R: usize, const C: usize, const K: usize> Default for GravityGame<R, C, K> {
@@ -80,7 +80,7 @@ impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>> 
 }
 
 impl<const R: usize, const C: usize, const K: usize> From<GravityGame<R, C, K>>
-for MnkGame<R, C, K>
+    for MnkGame<R, C, K>
 {
     fn from(game: GravityGame<R, C, K>) -> Self {
         game.0
