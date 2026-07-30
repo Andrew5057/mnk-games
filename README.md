@@ -13,8 +13,9 @@ CLI for tic-tac-toe, gomoku, and [Connect Four]. Goals include:
 
 ## CLI
 
-The command line tool takes one argument, which must be either `tic-tac-toe` or `gomoku`. This will start a round of the
-chosen game. Player play by entering a space-separated, zero-indexed row and column.
+The command line tool takes one argument, which must be `tic-tac-toe`, `gomoku`, or `connect-four`. This will start a
+round of the chosen game. Player play by entering a space-separated, zero-indexed row and column (or just a column for
+`connect-four`).
 
 [Rust badge]: https://github.com/Andrew5057/mnk-games/actions/workflows/rust.yml/badge.svg
 
