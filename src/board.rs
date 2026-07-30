@@ -32,6 +32,18 @@ impl Not for Player {
     }
 }
 
+/// An error which can occur when the intended location is not within the board's bounds.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct OutOfBounds;
+
+impl fmt::Display for OutOfBounds {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "location is out of bounds")
+    }
+}
+
+impl Error for OutOfBounds {}
+
 /// An error which can occur when trying to place a stone.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
@@ -42,12 +54,7 @@ pub enum PlaceError {
         player: Player,
     },
     /// An error which can occur when the intended location is not within the board's bounds.
-    OutOfBounds {
-        /// The intended (potentially out-of-bounds) row.
-        row: usize,
-        /// The intended (potentially out-of-bounds) column.
-        column: usize,
-    },
+    OutOfBounds,
 }
 
 impl fmt::Display for PlaceError {
@@ -56,8 +63,8 @@ impl fmt::Display for PlaceError {
             Self::Occupied { player } => {
                 write!(f, "already occupied by {player}")
             }
-            Self::OutOfBounds { row, column } => {
-                write!(f, "out of bounds (row {row}, column {column})")
+            Self::OutOfBounds => {
+                write!(f, "location is out of bounds")
             }
         }
     }
@@ -110,7 +117,7 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
             .row_array
             .get_mut(row)
             .and_then(|row| row.get_mut(column));
-        location.map_or(Err(PlaceError::OutOfBounds { row, column }), |space| {
+        location.map_or(Err(PlaceError::OutOfBounds), |space| {
             space.map_or_else(
                 || {
                     *space = Some(player);
@@ -141,10 +148,12 @@ impl<const R: usize, const C: usize> MnkBoard<R, C> {
 
     /// Returns the [`Option<Player>`] at the specified row and column.
     ///
-    /// Returns [`None`] if either index is out of bounds.
-    #[must_use]
-    pub fn get(&self, row: usize, column: usize) -> Option<&Option<Player>> {
-        self.row_array.get(row).and_then(|row| row.get(column))
+    /// # Errors
+    /// `OutOfBounds` if either index is out of bounds.
+    pub fn get(&self, row: usize, column: usize) -> Result<&Option<Player>, OutOfBounds> {
+        self.row_array
+            .get(row)
+            .map_or(Err(OutOfBounds), |row| row.get(column).ok_or(OutOfBounds))
     }
 
     /// Returns the [`Option<Player>`] at the specified row and column, without checking bounds.
@@ -347,26 +356,14 @@ mod test_placers {
         let mut empty: MnkBoard<2, 2> = MnkBoard::new();
 
         let high_row_x = empty.place(Player::X, 2, 0);
-        assert_eq!(
-            high_row_x,
-            Err(PlaceError::OutOfBounds { row: 2, column: 0 })
-        );
+        assert_eq!(high_row_x, Err(PlaceError::OutOfBounds));
         let high_row_o = empty.place(Player::O, 2, 0);
-        assert_eq!(
-            high_row_o,
-            Err(PlaceError::OutOfBounds { row: 2, column: 0 })
-        );
+        assert_eq!(high_row_o, Err(PlaceError::OutOfBounds));
 
         let high_column_x = empty.place(Player::X, 0, 2);
-        assert_eq!(
-            high_column_x,
-            Err(PlaceError::OutOfBounds { row: 0, column: 2 })
-        );
+        assert_eq!(high_column_x, Err(PlaceError::OutOfBounds));
         let high_column_o = empty.place(Player::O, 0, 2);
-        assert_eq!(
-            high_column_o,
-            Err(PlaceError::OutOfBounds { row: 0, column: 2 })
-        );
+        assert_eq!(high_column_o, Err(PlaceError::OutOfBounds));
     }
 
     #[test]
@@ -471,18 +468,18 @@ mod test_getters {
     fn get_in_bounds() {
         let board = square();
 
-        assert_eq!(board.get(0, 0), Some(&Some(Player::X)));
-        assert_eq!(board.get(0, 1), Some(&None));
-        assert_eq!(board.get(1, 0), Some(&None));
-        assert_eq!(board.get(1, 1), Some(&Some(Player::O)));
+        assert_eq!(board.get(0, 0), Ok(&Some(Player::X)));
+        assert_eq!(board.get(0, 1), Ok(&None));
+        assert_eq!(board.get(1, 0), Ok(&None));
+        assert_eq!(board.get(1, 1), Ok(&Some(Player::O)));
     }
 
     #[test]
     fn get_out_of_bounds() {
         let board = square();
 
-        assert_eq!(board.get(2, 0), None);
-        assert_eq!(board.get(0, 2), None);
+        assert_eq!(board.get(2, 0), Err(OutOfBounds));
+        assert_eq!(board.get(0, 2), Err(OutOfBounds));
     }
 
     #[test]

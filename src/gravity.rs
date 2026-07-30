@@ -49,10 +49,7 @@ fn lowest_row_in<const R: usize, const C: usize>(
     column: usize,
 ) -> Result<usize, PlayError> {
     if column >= C {
-        return Err(PlayError::PlaceError(PlaceError::OutOfBounds {
-            row: 0,
-            column,
-        }));
+        return Err(PlayError::PlaceError(PlaceError::OutOfBounds));
     }
 
     let mut rows = (0..R).rev();
@@ -127,10 +124,7 @@ mod test_lowest_row_in {
         let one_one: MnkBoard<1, 1> = MnkBoard::new();
         assert_matches!(
             lowest_row_in(&one_one, 1),
-            Err(PlayError::PlaceError(PlaceError::OutOfBounds {
-                column: 1,
-                row: _
-            }))
+            Err(PlayError::PlaceError(PlaceError::OutOfBounds))
         );
     }
 

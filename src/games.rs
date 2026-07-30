@@ -358,10 +358,7 @@ mod test_play_at {
         let mut empty: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(
             empty.play_at(1, 0),
-            Err(PlayError::PlaceError(PlaceError::OutOfBounds {
-                row: 1,
-                column: 0
-            }))
+            Err(PlayError::PlaceError(PlaceError::OutOfBounds))
         );
     }
 
@@ -369,12 +366,12 @@ mod test_play_at {
     fn depends_on_next_player() {
         let mut x_plays: MnkGame<1, 1, 1> = MnkGame::new();
         assert_eq!(x_plays.play_at(0, 0), Ok(()));
-        assert_eq!(x_plays.board.get(0, 0), Some(&Some(Player::X)));
+        assert_eq!(x_plays.board.get(0, 0), Ok(&Some(Player::X)));
 
         let mut o_plays: MnkGame<1, 1, 1> = MnkGame::new();
         o_plays.status = GameStatus::Ongoing { next: Player::O };
         assert_eq!(o_plays.play_at(0, 0), Ok(()));
-        assert_eq!(o_plays.board.get(0, 0), Some(&Some(Player::O)));
+        assert_eq!(o_plays.board.get(0, 0), Ok(&Some(Player::O)));
     }
 
     #[test]
