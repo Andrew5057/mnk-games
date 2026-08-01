@@ -10,6 +10,7 @@ keywords = ["game", "math", "matrix", "game-theory"]
 categories = ["games", "mathematics"]
 
 [dependencies]
+thiserror = "2"
 
 [lints.rust]
 let-underscore = "deny"

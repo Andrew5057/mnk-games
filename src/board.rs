@@ -1,8 +1,8 @@
 //! m-by-n game boards themselves and simple foundational infrastructure for them.
 
-use std::error::Error;
 use std::ops::Not;
 use std::{fmt, iter};
+use thiserror::Error;
 
 /// One of two players.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -35,7 +35,7 @@ impl Not for Player {
 }
 
 /// An error which can occur when the intended location is not within the board's bounds.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Error, Hash, PartialEq)]
 pub struct OutOfBounds {
     /// If [`Some`], the intended row, which is out of bounds.
     ///
@@ -58,10 +58,8 @@ impl fmt::Display for OutOfBounds {
     }
 }
 
-impl Error for OutOfBounds {}
-
 /// An error which can occur when trying to place a stone.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Error, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum PlaceError {
     /// An error which can occur when the location is already occupied.
@@ -70,13 +68,7 @@ pub enum PlaceError {
         player: Option<Player>,
     },
     /// An error which can occur when the intended location is not within the board's bounds.
-    OutOfBounds(OutOfBounds),
-}
-
-impl From<OutOfBounds> for PlaceError {
-    fn from(oob: OutOfBounds) -> Self {
-        Self::OutOfBounds(oob)
-    }
+    OutOfBounds(#[from] OutOfBounds),
 }
 
 impl fmt::Display for PlaceError {
@@ -90,8 +82,6 @@ impl fmt::Display for PlaceError {
         }
     }
 }
-
-impl Error for PlaceError {}
 
 /// A game board with `R` rows and `C` columns of spaces, each represented by an
 /// [`Option<Player>`]s.

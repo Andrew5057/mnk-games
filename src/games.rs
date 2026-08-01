@@ -1,23 +1,17 @@
 //! Full *m,n,k*-games, including winner checking.
 
 use crate::{MnkBoard, PlaceError, Player};
-use std::error::Error;
 use std::fmt;
+use thiserror::Error;
 
 /// Errors which may occur when playing a move.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum PlayError {
     /// An error which may occur when the game is already over.
     GameOver(GameStatus),
     /// An error which may occur when a stone cannot be placed at the indicated position.
-    Place(PlaceError),
-}
-
-impl From<PlaceError> for PlayError {
-    fn from(error: PlaceError) -> Self {
-        Self::Place(error)
-    }
+    Place(#[from] PlaceError),
 }
 
 impl fmt::Display for PlayError {
@@ -28,8 +22,6 @@ impl fmt::Display for PlayError {
         }
     }
 }
-
-impl Error for PlayError {}
 
 /// The current status of a game.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
